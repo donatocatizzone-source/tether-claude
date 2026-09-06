@@ -46,7 +46,7 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <Toaster theme="dark" position="top-center" richColors />
-      <BrowserRouter>
+      <BrowserRouter basename={import.meta.env.BASE_URL}>
         <AuthProvider>
           <WorkspaceProvider>
             <SafetyTimerProvider>
