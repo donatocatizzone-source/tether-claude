@@ -57,30 +57,41 @@ its 18 screens and opens correctly in a browser as-is.
 
 ## What actually exists in this repo right now
 
-Everything built so far in this rebuild was built against the demo file
-only, before `OLD` was discovered. Concretely, that means:
+Auth, routing, and the B2B side (build order items 1-3 and 9) are now real
+and built against `OLD`. Consumer-side feature depth (items 4-8, 10-11) is
+still built against the demo file only and needs rebuilding. Concretely:
 
-- **Real Supabase Auth does not exist yet** — no `/auth` route, no
-  `AuthContext`, no `ProtectedRoute`. Everything is reachable with no login.
-- **The route structure is flat** (`/`, `/mode/:mode`, `/circle`, `/vouch`,
-  `/settings`, `/premium/:key`, `/ride`, `/b2b`, `/b2b/team`,
-  `/b2b/openhouse`, the student trio, etc. — see `src/App.tsx`), not
-  `OLD`'s `/consumer/*`, `/business/member`, `/business/admin` split.
-- **`WorkspaceContext` here has two modes** (`consumer`/`professional`,
-  see `src/components/layout/WorkspaceContext.tsx`), not `OLD`'s three
-  (`consumer`/`member`/`admin`, gated by `hasOrganization`/`isManager`).
-- The 18 demo screens (Home, ModeMenu, ActiveTimer, DatingMode,
-  MarketplaceMode, RideMode, Vault, the Student trio, Circle, Vouch,
-  Settings, Premium, Guardian, the B2B trio) are built and are reasonable
-  **visual/conceptual starting points** for their `OLD` equivalents, but
-  none of them are wired to real data, real sessions, or real auth — treat
-  them as skeletons to rebuild against `OLD`, not finished work to extend
-  as-is. Two known fidelity bugs from that phase, not yet fixed: `Home.tsx`
-  uses the wrong badge icon and is missing a decorative watermark; `Premium.tsx`
-  is missing its back-button chrome, background glow, and feature checklist.
-- `supabase/schema.sql` **has just been rewritten** to match `OLD`'s real
-  16-table schema (see below) — it no longer matches what any currently-built
-  screen actually queries, since none of them talk to Supabase yet.
+- **Real Supabase Auth exists and works** — `/auth`, `AuthContext`,
+  `ProtectedRoute`/`AuthRoute`, a live Supabase project connected via
+  `.env.local`. Sign-up/sign-in verified working end-to-end.
+- **Routing matches `OLD`**: `/auth`, `/consumer/*` (nested), `/business/member/*`,
+  `/business/admin`, `/walk/share/:token`, `/invite/:token` — see `src/App.tsx`,
+  `src/pages/ConsumerPage.tsx`, `MemberPage.tsx`, `AdminPage.tsx`.
+- **`WorkspaceContext` has `OLD`'s real three modes**
+  (`consumer`/`member`/`admin`, gated by `hasOrganization`/`isManager` — see
+  `src/contexts/WorkspaceContext.tsx`; those two gates are still hardcoded
+  `true`/`true`, matching `OLD`'s own current state, not yet derived from a
+  real profile role query).
+- **B2B is real**: `/business/member` renders the actual `TeamMemberView`
+  (session start/end, Silent SOS, GPS tracking, duress PIN) and
+  `/business/admin` renders the actual `OverwatchDashboard` (every tab —
+  incidents, audit log, pro guard, live sessions, team, invitations,
+  analytics — wired to real Supabase queries + Realtime). The old demo's
+  B2B trio (`b2b/Home.tsx`/`Team.tsx`/`OpenHouse.tsx`) and the orphaned
+  `b2b/Dashboard.tsx` stub are deleted.
+- **Consumer screens are still demo-file skeletons**: Home, ModeMenu,
+  ActiveTimer, DatingMode, MarketplaceMode, RideMode, Vault, the Student
+  trio, Circle, Vouch, Settings, Premium, Guardian are built but not wired
+  to real data/sessions — treat them as visual starting points to rebuild
+  against `OLD`'s consumer components (Dashboard, DateGuardView,
+  MarketplaceGuardView, CirclePage, SafeSpacesPage, etc.), not finished
+  work. Two known fidelity bugs, not yet fixed: `Home.tsx` uses the wrong
+  badge icon and is missing a decorative watermark; `Premium.tsx` is
+  missing its back-button chrome, background glow, and feature checklist.
+- `supabase/schema.sql` matches `OLD`'s real 16-table schema and has been
+  pushed to a live project — Overwatch/Pro Guard/TeamMemberView all query
+  it successfully. `src/types/database.ts` still hasn't been regenerated
+  against it (see Database schema below).
 
 ## Architecture (per `OLD` — build toward this)
 
@@ -157,20 +168,22 @@ against `OLD` yet.
 ### Student Mode
 - `OLD`'s `BusMode.tsx`/`StudentMode.tsx`/`HangoutMode.tsx`/`WalkHome.tsx`(+`WalkSharePage.tsx` for the public share link) roughly line up with this rebuild's already-built `student/Bus.tsx`/`Hangout.tsx`/`Walk.tsx` conceptually, but `OLD`'s Walk Home has a real shareable `/walk/share/:token` link backed by `walk_sessions` — this rebuild's Walk timer is purely local component state.
 
-### B2B — Pro Guard (`components/tether/pro/*`, field employees, `/business/member`)
+### B2B — Pro Guard (`src/components/pro/*`, `src/components/TeamMemberView.tsx`, `/business/member`) — ✅ built
 - Timed appointment sessions (client name, address, notes, expected end time) with a countdown, backed by `professional_sessions`
-- **Silent alarm PIN pad** (`PinPadModal.tsx`) — entering a duress PIN quietly sets `status = 'duress_alert'` while the screen shows a normal "completed" state
-- **Geofencing** — session can set a geofence; `check_geofence_breach()` auto-creates a medium-severity incident if the user's `user_locations` leaves the radius
-- **Status here:** `src/pages/RideMode.tsx` is the closest analog conceptually (a session + map) but has none of this — no duress PIN, no geofence, no `professional_sessions` wiring. The old demo's B2B trio (`b2b/Home.tsx`/`Team.tsx`/`OpenHouse.tsx`) is a different, simpler concept (a realtor showing-timer dashboard) and doesn't map onto Pro Guard directly.
+- **Silent alarm PIN pad** (`PinPadModal.tsx`) — entering a duress PIN quietly sets `status = 'duress_alert'` while the screen shows a normal "completed" state (`SessionEndScreen.tsx`)
+- **Geofencing** — `ProGuardSetup.tsx` can set a geofence; `check_geofence_breach()` auto-creates a medium-severity incident if the user's `user_locations` leaves the radius
+- `TeamMemberView.tsx` (the real `/business/member` content) adds: profile editor, Silent SOS/Check-In/Assist quick actions, GPS-tracked active session (`useGeoTracking`), situational map, mock assigned-properties list
+- `ProGuardView`/`Setup`/`Active` are also used standalone as Overwatch's own "Pro Guard" preview tab
 
-### B2B — Overwatch manager console (`components/tether/overwatch/*`, `/business/admin`)
-- `OverwatchDashboard.tsx` (shell) + `AlertStream.tsx`/`IncidentFeed.tsx` (severity-leveled incident feed), `AlertsMap.tsx` (geographic view), `StatusBoard.tsx`/`TeamTable.tsx` (roster at a glance), `EmployeeDetailView.tsx` (drill-in), `ResolutionModal.tsx` (acknowledge/resolve workflow — outcome: false alarm / user safe / emergency services called / test), `AuditLog.tsx`, `InviteTeamModal.tsx`/`AddEmployeeModal.tsx`/`InvitationsView.tsx` (org invites), `OverwatchAnalytics.tsx`, `OverwatchSidebar.tsx`, `OverwatchLive.tsx`
+### B2B — Overwatch manager console (`src/components/overwatch/*`, `/business/admin`) — ✅ built
+- `OverwatchDashboard.tsx` (shell) + `AlertStream.tsx`/`IncidentFeed.tsx` (severity-leveled incident feed), `AlertsMap.tsx` (geographic view — privacy rule preserved: idle employees never get a pin), `StatusBoard.tsx`/`TeamTable.tsx` (roster at a glance), `EmployeeDetailView.tsx` (drill-in), `ResolutionModal.tsx` (acknowledge/resolve workflow — outcome: false alarm / user safe / emergency services called / test), `AuditLog.tsx` (+ client-side CSV export), `InviteTeamModal.tsx`/`AddEmployeeModal.tsx`/`InvitationsView.tsx` (org invites), `OverwatchAnalytics.tsx` (recharts), `OverwatchSidebar.tsx`, `OverwatchLive.tsx`
 - Real-time: `useIncidentNotifications.ts` subscribes to `incidents` inserts + `professional_sessions` duress updates via Supabase Realtime, fires toasts + browser Notifications for high/critical severity
-- **Status here:** not started at all. `src/pages/b2b/Dashboard.tsx` is an orphaned, unrouted `ScreenStub` describing exactly this feature — it was planned (a plan was given and approved in principle) but never built. This is the single largest gap between this rebuild and `OLD`.
+- Merges real org members (`profiles` + `professional_sessions` + `user_locations`) with seed dummy data (`dummyData.ts`) so the console isn't empty before real sessions exist
+- Verified in-browser: every tab renders and queries the live Supabase project correctly
 
 ### Org system (backbone for all of B2B)
 - `organizations` + `user_roles` (multi-role per user: `user`/`admin`/`security_guard`/`manager`, checked via the security-definer `has_role()` function, never trusted from client-supplied role claims)
-- `org_invitations` — invite by email + role, auto-assigned to org/role on that email's signup via `handle_invitation_on_signup()`
+- `org_invitations` — invite by email + role, auto-assigned to org/role on that email's signup via `handle_invitation_on_signup()`. **Status:** the manager-side create-invite flow is built (`InviteTeamModal.tsx`); `/invite/:token`'s accept-side page is still a `ScreenStub` (see Suggested build order, item 10).
 - Multi-tenant RLS throughout: every org-scoped table's manager/admin policies join back through `profiles.organization_id = get_user_org_id(auth.uid())`
 - B2B is intentionally kept out of the consumer UI (separate workspace, not a menu item)
 
@@ -186,8 +199,12 @@ npx supabase gen types typescript --project-id <your-project-id> > src/types/dat
 ```
 
 **`src/types/database.ts` has not been regenerated yet** — it still reflects
-the old 8-table schema and will not match `supabase/schema.sql` until this
-is run against a live project.
+the old 8-table schema. The live project (schema already pushed) is at
+`https://brkemzsaooghcmtmporb.supabase.co`; run the command above against
+it when convenient (Overwatch/Pro Guard/TeamMemberView work fine without
+generated types today since their Supabase calls aren't using the
+`Database` generic strictly, but regenerating would restore full type
+safety on those calls).
 
 | Table | Purpose |
 |---|---|
@@ -222,42 +239,47 @@ is run against a live project.
   style, expected/actual polylines, single/multi marker, used in place of
   every demo screen's original fake SVG map)
 - `src/components/layout/AppShell.tsx` — bottom nav + floating shield button
+  (consumer-only chrome, mounted inside `ConsumerPage`)
 - `src/components/layout/MenuDrawer.tsx` + `MenuDrawerContext.tsx` — hamburger
-  drawer (ported from the demo's `#menu-drawer`); links to the not-yet-built
-  payment sheet show a placeholder toast
-- `src/components/layout/WorkspaceContext.tsx` + `WorkspaceToggle.tsx` — the
-  **two-mode** consumer/professional toggle built against the old demo's
-  flat architecture; will need reconciling with `OLD`'s three-mode version
-  (consumer/member/admin, gated by org membership + role) once real auth
-  and roles exist
+  drawer (ported from the demo's `#menu-drawer`, consumer-only); links to
+  the not-yet-built payment sheet show a placeholder toast
+- `src/contexts/AuthContext.tsx`, `WorkspaceContext.tsx`, `SafetyTimerContext.tsx`
+  — `OLD`'s real three providers (`SafetyTimerContext` not wired into any
+  screen yet — `ActiveTimer.tsx` still owns its own local countdown)
+- `src/components/layout/TopBar.tsx` + `WorkspaceSwitcher.tsx` — the
+  persistent header (wordmark + theme toggle + workspace-switcher dropdown)
+  rendered above all three workspaces, matching `OLD`'s `TopBar`/`WorkspaceSwitcher`
 - `src/components/layout/ThemeToggle.tsx` — dark/light toggle via
   `next-themes`; `active-timer`/`dating`/`market`/`premium`/`vault`/`guardian`
-  and the B2B trio stay hardcoded dark regardless of the toggle (deliberate
+  and B2B stay hardcoded dark regardless of the toggle (deliberate
   safety-session / professional-workspace identity, not an oversight)
 - `src/components/layout/ScreenStub.tsx` — placeholder for not-yet-built
-  screens
-- **Old-demo screens built** (skeletons only — see "What actually exists"
-  above for what's missing relative to `OLD`): Home, ModeMenu, ActiveTimer,
-  DatingMode, MarketplaceMode, RideMode (partial), Premium, Vault,
-  SafetyCircle, Vouch, Settings, Guardian, the Student trio, the B2B trio
-- `supabase/schema.sql` — the real 16-table schema (just rewritten, not yet
-  applied to a live Supabase project)
+  screens (now only used by the two public share/invite pages)
+- `src/hooks/useGeoTracking.ts`, `useIncidentNotifications.ts` — ported directly from `OLD`
+- **B2B: fully built** — `src/components/overwatch/*`, `src/components/pro/*`,
+  `src/components/TeamMemberView.tsx` (see Feature inventory above)
+- **Old-demo consumer screens built** (skeletons only — see "What actually
+  exists" above for what's missing relative to `OLD`): Home, ModeMenu,
+  ActiveTimer, DatingMode, MarketplaceMode, RideMode (partial), Premium,
+  Vault, SafetyCircle, Vouch, Settings, Guardian, the Student trio
+- `supabase/schema.sql` — the real 16-table schema, pushed to a live project
 - `reference/tether-app-demo.html` — the early prototype (see Ground Truth)
 - `OLD/` (outside this repo) — the real prior build; see Ground Truth
 
 ## Suggested build order
 
-Given the scope difference, auth and schema come first — almost everything
-else depends on them:
+Items 1-3 and 9 are done. Remaining items don't depend on each other much —
+pick whichever consumer flow matters most next:
 
-1. Push `supabase/schema.sql` to a fresh Supabase project; regenerate
-   `src/types/database.ts`; add `.env.local` with the project URL/anon key.
-2. Build real Supabase Auth (`AuthContext`, `/auth` page, `ProtectedRoute`/
-   `AuthRoute`) — port from `OLD/src/contexts/AuthContext.tsx` and
-   `OLD/src/pages/AuthPage.tsx`.
-3. Restructure routing to the `/consumer/*` `/business/member`
-   `/business/admin` split; reconcile `WorkspaceContext` to `OLD`'s
-   three-mode, org/role-gated version; add `SafetyTimerContext`.
+1. ~~Push `supabase/schema.sql` to a fresh Supabase project; add `.env.local`
+   with the project URL/anon key.~~ **Done** — live at
+   `https://brkemzsaooghcmtmporb.supabase.co`. `src/types/database.ts`
+   regeneration still outstanding (see Database schema above).
+2. ~~Build real Supabase Auth.~~ **Done** — `AuthContext`, `/auth`,
+   `ProtectedRoute`/`AuthRoute`, verified working end-to-end.
+3. ~~Restructure routing to the three-workspace split; reconcile
+   `WorkspaceContext`; add `SafetyTimerContext`.~~ **Done** — `SafetyTimerContext`
+   exists but isn't wired into `ActiveTimer.tsx` yet.
 4. Rebuild the consumer Dashboard against `OLD`'s `Dashboard.tsx` (hold-to-
    activate panic button, real profile data, clickable stat tiles wired to
    real `trusted_contacts`/Vouch/session data).
@@ -268,10 +290,12 @@ else depends on them:
    most fleshed-out mode and a good template for Ride/Marketplace/Student.
 7. Marketplace rebuild (MarketGuard + Hire-a-Proxy + history).
 8. Safe Spaces (Google Places integration via `useNearbyPlaces`).
-9. B2B: Pro Guard (duress PIN, geofencing) then Overwatch (the full manager
-   console — this supersedes the previously-planned, never-built
-   `b2b/Dashboard.tsx` admin panel; delete that stub once Overwatch lands).
-10. Org invitations end-to-end (`/invite/:token`), `/walk/share/:token`.
+9. ~~B2B: Pro Guard then Overwatch.~~ **Done** — see Feature inventory above.
+   The orphaned `b2b/Dashboard.tsx` stub (and the retired b2b trio) are deleted.
+10. Org invitations end-to-end — the create-invite side is done
+    (`InviteTeamModal.tsx`); `/invite/:token`'s accept-side page
+    (`InviteAcceptPage.tsx`) and `/walk/share/:token`
+    (`WalkSharePage.tsx`) are still `ScreenStub`s.
 11. Menu drawer's payment sheet + billing (still not started either build).
 
 ## Design system
@@ -339,5 +363,7 @@ the same shadcn/Tailwind token setup:
   drawer's Billing/Upgrade buttons show a placeholder toast
 - `src/pages/StudentMode.tsx` — orphaned, unrouted duplicate stub, safe to
   delete (superseded by the already-built `student/Bus.tsx`/`Walk.tsx`/`Hangout.tsx`)
-- `src/pages/b2b/Dashboard.tsx` — orphaned, unrouted `ScreenStub`; delete
-  once real Overwatch (item 9 in the build order) replaces it
+- `WorkspaceProvider`'s `hasOrganization`/`isManager` are hardcoded `true`/`true`
+  (matching `OLD`'s own current state) — should eventually derive from the
+  signed-in user's `profiles.organization_id` / `has_role()` once that
+  wiring is worth the effort
