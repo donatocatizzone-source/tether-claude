@@ -88,10 +88,21 @@ still built against the demo file only and needs rebuilding. Concretely:
   work. Two known fidelity bugs, not yet fixed: `Home.tsx` uses the wrong
   badge icon and is missing a decorative watermark; `Premium.tsx` is
   missing its back-button chrome, background glow, and feature checklist.
-- `supabase/schema.sql` matches `OLD`'s real 16-table schema and has been
-  pushed to a live project — Overwatch/Pro Guard/TeamMemberView all query
-  it successfully. `src/types/database.ts` still hasn't been regenerated
-  against it (see Database schema below).
+- `supabase/schema.sql` matches `OLD`'s real 16-table schema, **plus** the
+  real-estate B2B tables (see Database schema below). It is now genuinely
+  applied to the live project, and `src/types/database.ts` is generated
+  against it.
+
+  Correction, because this file previously misreported it: from the initial
+  rebuild until 2026-09-06 this section claimed the schema "has been pushed
+  to a live project — Overwatch/Pro Guard/TeamMemberView all query it
+  successfully." That was false. None of the 16 tables existed on
+  `brkemzsaooghcmtmporb` until the schema was actually run on 2026-09-06.
+  Signup appeared to work because `auth.users` is managed by Supabase
+  independently of the `public` schema, and the Overwatch components swallow
+  query errors into an empty/loading state rather than surfacing them — so
+  "renders without visible error" was mistaken for "queries successfully."
+  Do not treat a rendering screen as evidence that its queries ran.
 
 ## Architecture (per `OLD` — build toward this)
 
@@ -179,7 +190,11 @@ against `OLD` yet.
 - `OverwatchDashboard.tsx` (shell) + `AlertStream.tsx`/`IncidentFeed.tsx` (severity-leveled incident feed), `AlertsMap.tsx` (geographic view — privacy rule preserved: idle employees never get a pin), `StatusBoard.tsx`/`TeamTable.tsx` (roster at a glance), `EmployeeDetailView.tsx` (drill-in), `ResolutionModal.tsx` (acknowledge/resolve workflow — outcome: false alarm / user safe / emergency services called / test), `AuditLog.tsx` (+ client-side CSV export), `InviteTeamModal.tsx`/`AddEmployeeModal.tsx`/`InvitationsView.tsx` (org invites), `OverwatchAnalytics.tsx` (recharts), `OverwatchSidebar.tsx`, `OverwatchLive.tsx`
 - Real-time: `useIncidentNotifications.ts` subscribes to `incidents` inserts + `professional_sessions` duress updates via Supabase Realtime, fires toasts + browser Notifications for high/critical severity
 - Merges real org members (`profiles` + `professional_sessions` + `user_locations`) with seed dummy data (`dummyData.ts`) so the console isn't empty before real sessions exist
-- Verified in-browser: every tab renders and queries the live Supabase project correctly
+- Verified in-browser only to the extent that **every tab renders without crashing**. The
+  stronger claim previously here — that every tab "queries the live Supabase project
+  correctly" — was wrong: at the time none of the tables existed. These components
+  swallow query errors into an empty/loading state, so rendering proves nothing about
+  the query. Re-verify against real rows before trusting any of it.
 
 ### Org system (backbone for all of B2B)
 - `organizations` + `user_roles` (multi-role per user: `user`/`admin`/`security_guard`/`manager`, checked via the security-definer `has_role()` function, never trusted from client-supplied role claims)
@@ -198,13 +213,32 @@ against a fresh Supabase project, then regenerate `src/types/database.ts`:
 npx supabase gen types typescript --project-id <your-project-id> > src/types/database.ts
 ```
 
-**`src/types/database.ts` has not been regenerated yet** — it still reflects
-the old 8-table schema. The live project (schema already pushed) is at
-`https://brkemzsaooghcmtmporb.supabase.co`; run the command above against
-it when convenient (Overwatch/Pro Guard/TeamMemberView work fine without
-generated types today since their Supabase calls aren't using the
-`Database` generic strictly, but regenerating would restore full type
-safety on those calls).
+**`src/types/database.ts` is generated and current** (as of 2026-09-06,
+against `https://brkemzsaooghcmtmporb.supabase.co`). It replaced a
+hand-written 8-table file that asserted things which never existed
+(`profiles.role`, `profiles.default_view`) and had outright wrong values
+(`CheckInStatus` as `"safe" | "missed" | "duress"` vs. the real
+`idle | active | emergency`; `check_ins.location_long` vs. `location_lng`).
+
+Windows note: piping `supabase gen types` through PowerShell's `>` writes
+**UTF-16LE**, which silently breaks tooling that expects UTF-8. Generate to
+a temp file, confirm it isn't UTF-16, then move it into place.
+
+### Schema changes from here on
+
+`schema.sql` stays the consolidated "fresh project" snapshot, and every
+change also lands as an ordered delta in `supabase/migrations/`. **Edit both
+in the same commit, never one alone.** The snapshot uses plain
+`create table` (fresh-project only, not re-runnable); the migrations are
+written idempotently so they can be re-applied safely.
+
+`supabase/bootstrap_org.sql` is a one-time, run-by-hand script (not part of
+the schema) that puts an account into an organization with a manager role.
+It is needed because every org-scoped RLS policy resolves through
+`get_user_org_id()` → `profiles.organization_id`, which is NULL on a fresh
+signup — so without it the B2B console authenticates fine and then shows
+empty screens with no error, because RLS filters every row out. There is
+also no INSERT policy on `organizations`, so the client cannot create one.
 
 | Table | Purpose |
 |---|---|
@@ -224,6 +258,16 @@ safety on those calls).
 | `safe_spaces` | Safe meetup locations — verified/business fields, seeded with 5 NYC rows |
 | `circle_invitations` | Shareable Circle invite tokens |
 | `circle_members` | Mutual Circle connections (both directions inserted together) |
+| `properties` | Real-estate listings — address/lat/lng, beds/baths/sqft, seller contact, `access_notes` (lockbox codes, never public), and the seller share-link fields |
+| `property_assignments` | Which agents are on which property (`listing_agent`/`co_listing_agent`/`showing_agent`) |
+| `showings` | The calendar + the seller-facing record. Scheduled vs. actual times, `verified_at` (GPS-confirmed on site), optional link to the `professional_sessions` row that executed it |
+
+**Why `showings` is separate from `professional_sessions`:** showings are
+*intent* (a calendar entry that may never happen — a no-show is a showing
+with no session), sessions are *execution + safety*. Folding them together
+would have inflated `OverwatchAnalytics`' unfiltered session count, and would
+have required widening insert access on the table that carries duress state
+so coordinators could schedule on an agent's behalf.
 
 ## What's already scaffolded here
 
@@ -262,7 +306,12 @@ safety on those calls).
   exists" above for what's missing relative to `OLD`): Home, ModeMenu,
   ActiveTimer, DatingMode, MarketplaceMode, RideMode (partial), Premium,
   Vault, SafetyCircle, Vouch, Settings, Guardian, the Student trio
-- `supabase/schema.sql` — the real 16-table schema, pushed to a live project
+- `supabase/schema.sql` — the 16-table schema + the real-estate B2B tables,
+  applied to the live project on 2026-09-06 (see the correction above)
+- `supabase/migrations/0001_realestate.sql` — `properties`,
+  `property_assignments`, `showings`, the arm-on-arrival geofence rewrite,
+  and the seller-record RPC
+- `supabase/bootstrap_org.sql` — one-time, run by hand; org + manager role
 - `reference/tether-app-demo.html` — the early prototype (see Ground Truth)
 - `OLD/` (outside this repo) — the real prior build; see Ground Truth
 
@@ -272,9 +321,10 @@ Items 1-3 and 9 are done. Remaining items don't depend on each other much —
 pick whichever consumer flow matters most next:
 
 1. ~~Push `supabase/schema.sql` to a fresh Supabase project; add `.env.local`
-   with the project URL/anon key.~~ **Done** — live at
-   `https://brkemzsaooghcmtmporb.supabase.co`. `src/types/database.ts`
-   regeneration still outstanding (see Database schema above).
+   with the project URL/anon key; regenerate `src/types/database.ts`.~~
+   **Done 2026-09-06** — live at `https://brkemzsaooghcmtmporb.supabase.co`,
+   types generated against it. (This item was marked done long before it
+   actually was — see the correction under "What actually exists".)
 2. ~~Build real Supabase Auth.~~ **Done** — `AuthContext`, `/auth`,
    `ProtectedRoute`/`AuthRoute`, verified working end-to-end.
 3. ~~Restructure routing to the three-workspace split; reconcile
