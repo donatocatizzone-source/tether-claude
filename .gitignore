@@ -9,3 +9,6 @@ dist-ssr
 *.log
 .vscode/*
 !.vscode/extensions.json
+
+# Supabase CLI scratch state (linked-project ref, version cache)
+supabase/.temp/

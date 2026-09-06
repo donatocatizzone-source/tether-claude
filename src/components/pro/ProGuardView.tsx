@@ -74,9 +74,13 @@ export function ProGuardView() {
     if (!sessionId || !expectedEndTime) return;
     const extended = new Date(new Date(expectedEndTime).getTime() + EXTEND_SECONDS * 1000).toISOString();
 
+    // Deliberately does NOT move status to 'extended': check_geofence_breach()
+    // only monitors sessions `where status = 'active'`, so flipping the status
+    // would silently switch the geofence off for the rest of the session.
+    // Extending changes the window, not the safety posture.
     const { error } = await supabase
       .from("professional_sessions")
-      .update({ expected_end_time: extended, status: "extended" })
+      .update({ expected_end_time: extended })
       .eq("id", sessionId);
 
     if (error) {
