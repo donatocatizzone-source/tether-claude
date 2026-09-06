@@ -90,8 +90,8 @@ export function PinPadModal({ open, onOpenChange, onVerify }: Props) {
               className={`h-4 w-4 rounded-full border-2 transition-colors ${
                 pin.length > i
                   ? error
-                    ? "border-red-500 bg-red-500"
-                    : "border-sky-500 bg-sky-500"
+                    ? "border-mode-danger bg-mode-danger"
+                    : "border-mode-ride bg-mode-ride"
                   : "border-border bg-transparent"
               }`}
               animate={error && pin.length === 0 ? { x: [0, -6, 6, -3, 3, 0] } : {}}
@@ -99,7 +99,7 @@ export function PinPadModal({ open, onOpenChange, onVerify }: Props) {
             />
           ))}
         </div>
-        {error && <p className="text-center text-xs text-red-400">Incorrect PIN</p>}
+        {error && <p className="text-center text-xs text-mode-danger">Incorrect PIN</p>}
 
         <div className="grid grid-cols-3 gap-3">
           {digits.map((d, i) => {

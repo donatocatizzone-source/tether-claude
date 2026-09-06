@@ -83,9 +83,9 @@ export function isOnTime(showing: Showing): boolean | null {
   return actual <= scheduled + ON_TIME_GRACE_MIN * 60_000;
 }
 
-export interface ShowingConflict {
-  a: Showing;
-  b: Showing;
+export interface ShowingConflict<T extends Showing = Showing> {
+  a: T;
+  b: T;
   /** Agent conflicts are errors; property conflicts are often legitimate. */
   kind: "agent" | "property";
 }
@@ -100,7 +100,11 @@ export interface ShowingConflict {
  *
  * Cancelled and no-show rows can't conflict with anything.
  */
-export function findConflicts(showings: Showing[]): ShowingConflict[] {
+// Generic so callers keep whatever they passed in. ScheduleView hands in
+// showings joined to their property and then reads `.property` off a
+// conflict — with a non-generic Showing[] that silently became undefined and
+// the conflict list rendered "Unknown address".
+export function findConflicts<T extends Showing>(showings: T[]): ShowingConflict<T>[] {
   const live = showings.filter((s) => {
     const status = effectiveShowingStatus(s);
     return status !== "cancelled" && status !== "no_show";
@@ -110,7 +114,7 @@ export function findConflicts(showings: Showing[]): ShowingConflict[] {
     (x, y) => (toMs(x.scheduled_start) ?? 0) - (toMs(y.scheduled_start) ?? 0),
   );
 
-  const conflicts: ShowingConflict[] = [];
+  const conflicts: ShowingConflict<T>[] = [];
 
   for (let i = 0; i < sorted.length; i++) {
     for (let j = i + 1; j < sorted.length; j++) {

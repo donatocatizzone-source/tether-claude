@@ -17,16 +17,16 @@ export default function Premium() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 p-6 pt-12 text-white">
-      <button onClick={() => navigate("/consumer")} className="mb-8 text-xs font-bold uppercase tracking-widest text-slate-400">
+    <div className="min-h-screen bg-background p-6 pt-12 text-foreground">
+      <button onClick={() => navigate("/consumer")} className="mb-8 text-xs font-bold uppercase tracking-widest text-muted-foreground">
         &larr; Premium
       </button>
-      <div className={`mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-slate-800 ${feature.color}`}>
+      <div className={`mb-6 flex h-20 w-20 items-center justify-center rounded-lg bg-background ${feature.color}`}>
         <feature.icon className="h-8 w-8" />
       </div>
       <h2 className="mb-4 text-3xl font-bold">{feature.title}</h2>
-      <p className="mb-8 leading-relaxed text-slate-400">{feature.desc}</p>
-      <button className="w-full rounded-xl bg-white py-4 font-bold text-slate-900 shadow-lg transition hover:bg-slate-200">
+      <p className="mb-8 leading-relaxed text-muted-foreground">{feature.desc}</p>
+      <button className="w-full rounded-xl bg-card py-4 font-bold text-foreground shadow-lg transition hover:bg-muted">
         Unlock Feature ($9.99/mo)
       </button>
     </div>

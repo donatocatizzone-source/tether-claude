@@ -30,7 +30,7 @@ export function ProGuardActive({ session, expectedEndTime, onEnd, onExtend }: Pr
 
   const { label, remainingSec, isWarning, isExpired } = useSessionCountdown(expectedEndTime);
 
-  const timerColor = isExpired ? "text-red-500" : isWarning ? "text-amber-400" : "text-sky-400";
+  const timerColor = isExpired ? "text-mode-danger" : isWarning ? "text-mode-active" : "text-mode-ride";
   const ringColor = isExpired ? "stroke-red-500" : isWarning ? "stroke-amber-400" : "stroke-sky-400";
 
   // Ring spans the original window plus any extensions, so extending visibly
@@ -47,7 +47,7 @@ export function ProGuardActive({ session, expectedEndTime, onEnd, onExtend }: Pr
   return (
     <div className="mx-auto flex w-full max-w-md flex-col items-center px-5 pb-24">
       <div className="mt-6 text-center">
-        <p className="text-xs font-bold uppercase tracking-widest text-sky-400">Pro Guard Active</p>
+        <p className="text-xs font-bold uppercase tracking-widest text-mode-ride">Pro Guard Active</p>
         <p className="mt-1 text-sm text-muted-foreground">
           {session.clientName} · {session.address || "No location"}
         </p>
@@ -83,9 +83,9 @@ export function ProGuardActive({ session, expectedEndTime, onEnd, onExtend }: Pr
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-center"
+          className="mt-4 rounded-xl border border-mode-danger/30 bg-mode-danger/10 px-4 py-3 text-center"
         >
-          <p className="text-sm font-semibold text-red-400">⚠️ Session expired — check in required</p>
+          <p className="text-sm font-semibold text-mode-danger">Session expired — check in required</p>
         </motion.div>
       )}
 
@@ -95,7 +95,7 @@ export function ProGuardActive({ session, expectedEndTime, onEnd, onExtend }: Pr
         </Button>
         <Button
           onClick={() => setPinOpen(true)}
-          className="h-14 flex-1 rounded-2xl bg-red-500/20 text-red-400 hover:bg-red-500/30"
+          className="h-14 flex-1 rounded-2xl bg-mode-danger/20 text-mode-danger hover:bg-mode-danger/30"
         >
           <StopCircle size={18} className="mr-2" /> End Session
         </Button>

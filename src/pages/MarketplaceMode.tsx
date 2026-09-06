@@ -18,7 +18,7 @@ export default function MarketplaceMode() {
   };
 
   return (
-    <div className="relative min-h-screen bg-black text-white">
+    <div className="relative min-h-screen bg-background text-foreground">
       <div
         className="absolute inset-0 bg-cover bg-center opacity-60"
         style={{
@@ -39,40 +39,40 @@ export default function MarketplaceMode() {
         <div className="flex items-center justify-between">
           <button
             onClick={() => navigate("/consumer")}
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-black/40 backdrop-blur"
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-background/40 backdrop-blur"
           >
             <X className="h-5 w-5" />
           </button>
-          <div className="flex items-center gap-2 rounded-full bg-black/40 px-3 py-1 backdrop-blur">
-            <div className="h-2 w-2 animate-pulse rounded-full bg-red-500" />
+          <div className="flex items-center gap-2 rounded-full bg-background/40 px-3 py-1 backdrop-blur">
+            <div className="h-2 w-2 animate-pulse rounded-full bg-mode-danger" />
             <span className="text-[10px] font-bold">SECURE VAULT</span>
           </div>
           <div className="w-10" />
         </div>
 
         <div className="flex flex-col items-center gap-6 pb-12">
-          <div className="rounded-lg bg-black/40 px-4 py-2 backdrop-blur">
+          <div className="rounded-lg bg-background/40 px-4 py-2 backdrop-blur">
             <p className="text-center text-xs font-medium">Align License Plate or Face</p>
           </div>
           <button
             onClick={capture}
-            className="flex h-20 w-20 items-center justify-center rounded-full border-[5px] border-white shadow-2xl"
+            className="flex h-20 w-20 items-center justify-center rounded-full border-[5px] border-white shadow-md"
           >
-            <div className="h-16 w-16 rounded-full bg-white transition duration-150 active:scale-90" />
+            <div className="h-16 w-16 rounded-full bg-card transition duration-150 active:scale-90" />
           </button>
         </div>
       </div>
 
       {captured && (
-        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-emerald-600 p-8 text-center">
-          <div className="mb-6 flex h-24 w-24 animate-bounce items-center justify-center rounded-full bg-white shadow-xl">
-            <Lock className="h-10 w-10 text-emerald-600" />
+        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-mode-safe p-8 text-center">
+          <div className="mb-6 flex h-24 w-24 animate-bounce items-center justify-center rounded-full bg-card shadow-md">
+            <Lock className="h-10 w-10 text-mode-safe" />
           </div>
           <h2 className="text-3xl font-bold">Evidence Secured</h2>
-          <p className="mb-10 mt-2 text-base text-white/90">Image encrypted and uploaded to cloud vault.</p>
+          <p className="mb-10 mt-2 text-base text-foreground/90">Image encrypted and uploaded to cloud vault.</p>
           <button
             onClick={() => navigate("/consumer")}
-            className="rounded-2xl bg-white px-10 py-4 font-bold text-emerald-800 shadow-lg transition active:scale-95"
+            className="rounded-lg bg-card px-10 py-4 font-bold text-foreground shadow-lg transition active:scale-95"
           >
             Done
           </button>

@@ -55,16 +55,16 @@ export default function ModeMenu() {
           <button
             key={i}
             onClick={() => (feat.to ? navigate(feat.to) : feat.toast && toast.success(feat.toast))}
-            className="group flex w-full items-center gap-4 rounded-2xl border border-border bg-card p-4 text-left shadow-sm transition hover:border-blue-100 active:scale-95"
+            className="group flex w-full items-center gap-4 rounded-lg border border-border bg-card p-4 text-left shadow-sm transition hover:border-border active:scale-95"
           >
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted text-muted-foreground transition group-hover:bg-blue-50 group-hover:text-blue-600">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted text-muted-foreground transition group-hover:bg-background group-hover:text-mode-ride">
               <feat.icon className="h-6 w-6" />
             </div>
             <div>
               <h4 className="text-sm font-bold text-foreground">{feat.title}</h4>
               <p className="text-xs text-muted-foreground">{feat.desc}</p>
             </div>
-            <ChevronRight className="ml-auto h-4 w-4 text-slate-300 group-hover:text-blue-300" />
+            <ChevronRight className="ml-auto h-4 w-4 text-muted-foreground group-hover:text-mode-ride" />
           </button>
         ))}
       </div>

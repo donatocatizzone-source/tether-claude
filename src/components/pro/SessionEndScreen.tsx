@@ -15,8 +15,8 @@ export function SessionEndScreen({ onDone }: { onDone: () => void }) {
         transition={{ type: "spring", stiffness: 200 }}
         className="flex flex-col items-center gap-4"
       >
-        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500/20">
-          <CheckCircle size={40} className="text-emerald-400" />
+        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-mode-safe/20">
+          <CheckCircle size={40} className="text-mode-safe" />
         </div>
         <h2 className="text-2xl font-bold text-foreground">Session Ended</h2>
         <p className="text-sm text-muted-foreground">All clear. Stay safe out there.</p>

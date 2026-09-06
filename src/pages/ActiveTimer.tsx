@@ -27,16 +27,16 @@ export default function ActiveTimer() {
   const dashOffset = CIRCUMFERENCE * (1 - progress);
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-slate-900 p-8 text-white">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background p-8 text-foreground">
       <div className="fixed left-0 top-12 flex w-full justify-center">
-        <div className="flex items-center gap-2 rounded-full border border-slate-700 bg-slate-800/80 px-4 py-1.5 backdrop-blur">
-          <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
-          <span className="text-[10px] font-bold tracking-wide text-emerald-400">GPS MONITORING LIVE</span>
+        <div className="flex items-center gap-2 rounded-full border border-border bg-background/80 px-4 py-1.5 backdrop-blur">
+          <span className="h-2 w-2 animate-pulse rounded-full bg-mode-safe" />
+          <span className="text-[10px] font-bold tracking-wide text-mode-safe">GPS MONITORING LIVE</span>
         </div>
       </div>
 
       <div className="relative mb-16 mt-8">
-        <div className="absolute inset-0 animate-pulse rounded-full bg-emerald-500 opacity-20 blur-2xl" />
+        <div className="absolute inset-0 animate-pulse rounded-full bg-mode-safe opacity-20 blur-2xl" />
         <svg className="relative z-10 h-72 w-72 -rotate-90 transform">
           <circle cx="144" cy="144" r={RADIUS} stroke="#1e293b" strokeWidth="8" fill="none" />
           <circle
@@ -55,7 +55,7 @@ export default function ActiveTimer() {
           <span className="font-mono-data text-6xl font-bold tracking-tighter">
             {minutes}:{seconds.toString().padStart(2, "0")}
           </span>
-          <span className="mt-2 text-xs font-medium uppercase tracking-widest text-slate-400">Until Alert</span>
+          <span className="mt-2 text-xs font-medium uppercase tracking-widest text-muted-foreground">Until Alert</span>
         </div>
       </div>
 
@@ -65,14 +65,14 @@ export default function ActiveTimer() {
             toast.success("Check-in Confirmed. Timer Stopped.");
             navigate("/consumer");
           }}
-          className="group flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-500 py-4 font-bold shadow-lg shadow-emerald-900/50 transition hover:bg-emerald-400"
+          className="group flex w-full items-center justify-center gap-2 rounded-lg bg-mode-safe py-4 font-bold shadow-lg shadow-emerald-900/50 transition hover:bg-mode-safe"
         >
           <CheckCircle2 className="h-5 w-5 transition group-hover:scale-110" />
           I'M SAFE
         </button>
         <button
           onClick={() => toast.error("SOS Triggered: Police Notified")}
-          className="flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-700 bg-slate-800 py-4 text-xs font-bold text-red-400 transition hover:border-red-500/50 hover:bg-red-900/20"
+          className="flex w-full items-center justify-center gap-2 rounded-lg border border-border bg-background py-4 text-xs font-bold text-mode-danger transition hover:border-mode-danger/40/50 hover:bg-mode-danger/20"
         >
           <AlertTriangle className="h-4 w-4" />
           TRIGGER SOS

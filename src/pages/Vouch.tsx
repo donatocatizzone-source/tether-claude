@@ -7,21 +7,21 @@ import { ArrowLeft, Star, Heart, ShoppingBag, Car } from "lucide-react";
 const BADGES = [
   {
     icon: Heart,
-    iconClass: "bg-pink-100 text-pink-500",
+    iconClass: "bg-muted text-mode-dating",
     title: "Verified Date",
     desc: "Safety check completed with Sarah",
     points: "+5",
   },
   {
     icon: ShoppingBag,
-    iconClass: "bg-sky-100 text-sky-500",
+    iconClass: "bg-muted text-mode-ride",
     title: "Safe Transaction",
     desc: "Marketplace meet with Mike",
     points: "+5",
   },
   {
     icon: Car,
-    iconClass: "bg-indigo-100 text-indigo-500",
+    iconClass: "bg-muted text-mode-ride",
     title: "Verified Trip",
     desc: "Completed route #8821",
     points: "+2",
@@ -47,9 +47,9 @@ export default function Vouch() {
           </div>
         </div>
 
-        <div className="mb-8 flex flex-col items-center rounded-3xl border border-border bg-card p-8 shadow-sm">
-          <div className="relative mb-4 flex h-32 w-32 items-center justify-center rounded-full border-[8px] border-yellow-100">
-            <Star className="absolute h-12 w-12 fill-current text-yellow-400" />
+        <div className="mb-8 flex flex-col items-center rounded-lg border border-border bg-card p-8 shadow-sm">
+          <div className="relative mb-4 flex h-32 w-32 items-center justify-center rounded-full border-[8px] border-border">
+            <Star className="absolute h-12 w-12 fill-current text-mode-active" />
             <svg className="absolute inset-0 h-full w-full -rotate-90 transform">
               <circle
                 cx="60"
@@ -67,7 +67,7 @@ export default function Vouch() {
           <h3 className="text-4xl font-black text-foreground">
             98<span className="text-lg font-medium text-muted-foreground">/100</span>
           </h3>
-          <p className="mt-2 rounded-full bg-yellow-50 px-3 py-1 text-xs font-bold text-yellow-700">
+          <p className="mt-2 rounded-full bg-background px-3 py-1 text-xs font-bold text-mode-active">
             High Trust Level
           </p>
         </div>
@@ -77,7 +77,7 @@ export default function Vouch() {
           {BADGES.map((b) => (
             <div
               key={b.title}
-              className="flex items-center gap-4 rounded-2xl border border-border bg-card p-4"
+              className="flex items-center gap-4 rounded-lg border border-border bg-card p-4"
             >
               <div className={`flex h-10 w-10 items-center justify-center rounded-full ${b.iconClass}`}>
                 <b.icon className="h-5 w-5" />
@@ -86,7 +86,7 @@ export default function Vouch() {
                 <h4 className="text-sm font-bold text-foreground">{b.title}</h4>
                 <p className="text-xs text-muted-foreground">{b.desc}</p>
               </div>
-              <span className="text-xs font-bold text-green-500">{b.points}</span>
+              <span className="text-xs font-bold text-mode-safe">{b.points}</span>
             </div>
           ))}
         </div>

@@ -70,8 +70,8 @@ export function ProGuardSetup({ onStart }: Props) {
   return (
     <div className="mx-auto w-full max-w-md px-5 pb-24">
       <div className="mt-6 flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-500/20">
-          <Briefcase size={20} className="text-sky-400" />
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-mode-ride/20">
+          <Briefcase size={20} className="text-mode-ride" />
         </div>
         <div>
           <h1 className="text-xl font-bold text-foreground">Pro Guard</h1>
@@ -126,7 +126,7 @@ export function ProGuardSetup({ onStart }: Props) {
                   onClick={() => setDurationMin(d.value)}
                   className={`rounded-lg border px-3 py-2 text-sm font-semibold transition-all ${
                     durationMin === d.value
-                      ? "border-sky-500 bg-sky-500/20 text-sky-400"
+                      ? "border-mode-ride bg-mode-ride/20 text-mode-ride"
                       : "border-border bg-background text-muted-foreground hover:bg-accent"
                   }`}
                 >
@@ -142,7 +142,7 @@ export function ProGuardSetup({ onStart }: Props) {
         <CardContent className="space-y-4 p-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Shield size={16} className="text-amber-400" />
+              <Shield size={16} className="text-mode-active" />
               <div>
                 <p className="text-sm font-semibold text-foreground">Geofence Alert</p>
                 <p className="text-xs text-muted-foreground">Alert if you leave the area</p>
@@ -206,7 +206,7 @@ export function ProGuardSetup({ onStart }: Props) {
           })
         }
         disabled={!canStart || (geofenceEnabled && !geofenceLat)}
-        className="mt-6 h-14 w-full rounded-2xl bg-sky-500 text-base font-bold text-white shadow-lg shadow-sky-500/30 hover:bg-sky-600 disabled:opacity-40"
+        className="mt-6 h-14 w-full rounded-2xl bg-mode-ride text-base font-bold text-white shadow-lg shadow-sky-500/30 hover:bg-mode-ride disabled:opacity-40"
       >
         <Briefcase size={20} className="mr-2" />
         Start Guard

@@ -75,7 +75,7 @@ export default function StudentBus() {
   }
 
   return (
-    <div className="relative min-h-screen bg-yellow-50">
+    <div className="relative min-h-screen bg-background">
       <div className="absolute inset-0 z-0">
         <GoogleMapView center={MID} zoom={13} marker={busPos} className="h-full w-full" />
       </div>
@@ -84,21 +84,21 @@ export default function StudentBus() {
         <div className="p-6 pt-12">
           <button
             onClick={() => navigate("/consumer")}
-            className="mb-6 flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-lg"
+            className="mb-6 flex h-10 w-10 items-center justify-center rounded-full bg-card shadow-lg"
           >
-            <ArrowLeft className="h-5 w-5 text-yellow-700" />
+            <ArrowLeft className="h-5 w-5 text-muted-foreground" />
           </button>
-          <div className="flex items-center gap-4 rounded-2xl border border-yellow-200 bg-white p-5 shadow-xl">
+          <div className="flex items-center gap-4 rounded-lg border border-border bg-card p-5 shadow-md">
             <div
               className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full font-bold ${
-                isDeviated ? "bg-red-100 text-red-600" : "bg-yellow-100 text-yellow-600"
+                isDeviated ? "bg-mode-danger/15 text-mode-danger" : "bg-muted text-mode-active"
               }`}
             >
               <BusIcon className="h-6 w-6" />
             </div>
             <div className="flex-1">
-              <h3 className="text-base font-bold text-slate-900">Route 44 School Bus</h3>
-              <p className={`text-xs ${isDeviated ? "text-red-600 font-bold" : "text-slate-500"}`}>{status}</p>
+              <h3 className="text-base font-bold text-foreground">Route 44 School Bus</h3>
+              <p className={`text-xs ${isDeviated ? "text-mode-danger font-bold" : "text-muted-foreground"}`}>{status}</p>
             </div>
           </div>
         </div>
@@ -106,13 +106,13 @@ export default function StudentBus() {
         <div className="mt-auto grid grid-cols-2 gap-4 p-6 pb-24">
           <button
             onClick={runBusSim}
-            className="w-full rounded-xl bg-yellow-500 py-4 text-xs font-bold text-white shadow-lg transition hover:bg-yellow-600"
+            className="w-full rounded-xl bg-mode-active py-4 text-xs font-bold text-foreground shadow-lg transition hover:bg-mode-active"
           >
             Simulate Route
           </button>
           <button
             onClick={runBusDeviation}
-            className="w-full rounded-xl bg-red-500 py-4 text-xs font-bold text-white shadow-lg transition hover:bg-red-600"
+            className="w-full rounded-xl bg-mode-danger py-4 text-xs font-bold text-foreground shadow-lg transition hover:bg-mode-danger"
           >
             Simulate Deviation
           </button>

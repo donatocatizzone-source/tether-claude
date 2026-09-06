@@ -29,8 +29,8 @@ export default function AdminPage() {
       <TopBar />
 
       {showBanner && (
-        <div className="mx-4 mt-2 flex items-center gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 md:mx-6">
-          <Bell size={18} className="shrink-0 text-amber-400" />
+        <div className="mx-4 mt-2 flex items-center gap-3 rounded-xl border border-mode-active/30 bg-mode-active/10 px-4 py-3 md:mx-6">
+          <Bell size={18} className="shrink-0 text-mode-active" />
           <p className="flex-1 text-sm text-foreground">
             <strong>Enable push notifications</strong> to get alerted on SOS and duress events even when you're on another tab.
           </p>

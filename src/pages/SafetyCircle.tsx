@@ -7,13 +7,13 @@ import { GoogleMapView, type LatLng } from "@/components/maps/GoogleMapView";
 // swaps that for a real GoogleMapView per CLAUDE.md's Google Maps section.
 const SELF_POSITION: LatLng = { lat: 33.081, lng: -97.175 };
 const MEMBERS = [
-  { name: "Mom", initial: "M", position: { lat: 33.086, lng: -97.182 }, status: "At Home • 100%", statusColor: "bg-emerald-500", icon: null },
+  { name: "Mom", initial: "M", position: { lat: 33.086, lng: -97.182 }, status: "At Home • 100%", statusColor: "bg-mode-safe", icon: null },
   { name: "Sister", initial: "S", position: { lat: 33.076, lng: -97.166 }, status: "Driving • 45mph", statusColor: null, icon: Car },
 ];
 
 const ACTIVITY = [
-  { name: "Sister", text: "left work.", time: "10 mins ago", dot: "bg-slate-300" },
-  { name: "Mom", text: "arrived at Home.", time: "2 hrs ago", dot: "bg-emerald-400" },
+  { name: "Sister", text: "left work.", time: "10 mins ago", dot: "bg-muted" },
+  { name: "Mom", text: "arrived at Home.", time: "2 hrs ago", dot: "bg-mode-safe" },
 ];
 
 export default function SafetyCircle() {
@@ -27,7 +27,7 @@ export default function SafetyCircle() {
           </button>
         </div>
 
-        <div className="mb-6 h-48 overflow-hidden rounded-3xl border border-border shadow-inner">
+        <div className="mb-6 h-48 overflow-hidden rounded-lg border border-border shadow-inner">
           <GoogleMapView
             center={SELF_POSITION}
             zoom={14}
@@ -42,12 +42,12 @@ export default function SafetyCircle() {
           {MEMBERS.map((m) => (
             <div
               key={m.name}
-              className="flex items-center justify-between rounded-2xl border border-border bg-card p-4 shadow-sm"
+              className="flex items-center justify-between rounded-lg border border-border bg-card p-4 shadow-sm"
             >
               <div className="flex items-center gap-3">
                 <div
                   className={`flex h-10 w-10 items-center justify-center rounded-full font-bold ${
-                    m.name === "Mom" ? "bg-pink-100 text-pink-600" : "bg-indigo-100 text-indigo-600"
+                    m.name === "Mom" ? "bg-muted text-mode-dating" : "bg-muted text-mode-ride"
                   }`}
                 >
                   {m.initial}
@@ -66,7 +66,7 @@ export default function SafetyCircle() {
               </div>
               <button
                 onClick={() => toast(`Ping sent to ${m.name}`)}
-                className="rounded-lg bg-blue-50 px-3 py-1.5 text-xs font-bold text-[#4292c6] hover:bg-blue-100"
+                className="rounded-lg bg-background px-3 py-1.5 text-xs font-bold text-[#4292c6] hover:bg-muted"
               >
                 Ping
               </button>

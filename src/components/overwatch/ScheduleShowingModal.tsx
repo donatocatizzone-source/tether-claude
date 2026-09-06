@@ -103,9 +103,20 @@ export function ScheduleShowingModal({ open, onClose, onScheduled, defaultProper
       }
       const end = new Date(start.getTime() + Number(duration) * 60_000);
 
-      // organization_id and agent_display_name are set by the set_showing_org
-      // trigger from the property, so they're deliberately not sent here.
+      // set_showing_org() overwrites organization_id from the property before
+      // insert, and fills agent_display_name — so this value is a formality.
+      // It is sent anyway because the column is NOT NULL with no default, and
+      // omitting it means relying on a trigger to satisfy a constraint the
+      // schema says the caller must satisfy. Sending the caller's own org also
+      // keeps the two in agreement for the common case.
+      const orgId = selectedProperty?.organization_id;
+      if (!orgId) {
+        toast.error("That listing has no organisation — reload and try again");
+        return;
+      }
+
       const { error } = await supabase.from("showings").insert({
+        organization_id: orgId,
         property_id: propertyId,
         agent_id: agentId,
         scheduled_start: start.toISOString(),
