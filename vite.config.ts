@@ -9,7 +9,7 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 8080,
     hmr: {
-      overlay: false,
+      overlay: true,
     },
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
@@ -20,7 +20,6 @@ export default defineConfig(({ mode }) => ({
     dedupe: ["react", "react-dom", "react/jsx-runtime"],
   },
   optimizeDeps: {
-    include: ["@tanstack/react-query"],
-    exclude: ["@react-google-maps/api"],
+    include: ["@tanstack/react-query", "@react-google-maps/api"],
   },
 }));
