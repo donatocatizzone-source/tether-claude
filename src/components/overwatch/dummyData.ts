@@ -1,7 +1,19 @@
 // Port of OLD/src/components/tether/overwatch/dummyData.ts (see CLAUDE.md
-// > Ground truth). Seed/fallback data shown alongside real org members
-// (see OverwatchDashboard's mergedEmployees) so the console isn't empty
-// before real Pro Guard sessions exist.
+// > Ground truth).
+//
+// These are FABRICATED rows for demos. They are only merged into the console
+// when VITE_DEMO_SEED=true (see src/lib/env.ts and OverwatchDashboard's
+// mergedEmployees) — off by default, because one of them carries an
+// `emergency` status that becomes a critical incident in the live feed, and a
+// manager must never have to work out whether a distress alert is invented.
+//
+// Names carry a "[Demo]" prefix so they stay identifiable in every view that
+// renders an Employee (status board, map pins, team table, drill-in) without
+// each of those needing its own demo-aware branch.
+//
+// Roles are real-estate ones now; they previously read "Security Guard" and
+// "Patrol Officer", left over from the generic field-safety product this B2B
+// side started as.
 export interface Employee {
   id: string;
   name: string;
@@ -12,25 +24,25 @@ export interface Employee {
 }
 
 export const dummyEmployees: Employee[] = [
-  { id: "1", name: "Sarah Chen", role: "Field Agent", status: "idle", lastCheckIn: "2 min ago" },
+  { id: "1", name: "[Demo] Sarah Chen", role: "Listing Agent", status: "idle", lastCheckIn: "2 min ago" },
   {
     id: "2",
-    name: "Marcus Williams",
-    role: "Security Guard",
+    name: "[Demo] Marcus Williams",
+    role: "Showing Agent",
     status: "emergency",
     lastCheckIn: "Just now",
     location: { lat: 40.7128, lng: -74.006 },
   },
-  { id: "3", name: "Priya Patel", role: "Field Agent", status: "idle", lastCheckIn: "5 min ago" },
+  { id: "3", name: "[Demo] Priya Patel", role: "Listing Agent", status: "idle", lastCheckIn: "5 min ago" },
   {
     id: "4",
-    name: "James Rodriguez",
-    role: "Patrol Officer",
+    name: "[Demo] James Rodriguez",
+    role: "Showing Agent",
     status: "active",
     lastCheckIn: "1 min ago",
     location: { lat: 40.7589, lng: -73.9851 },
   },
-  { id: "5", name: "Aisha Johnson", role: "Field Agent", status: "idle", lastCheckIn: "8 min ago" },
+  { id: "5", name: "[Demo] Aisha Johnson", role: "Buyer's Agent", status: "idle", lastCheckIn: "8 min ago" },
 ];
 
 export interface Incident {
@@ -56,9 +68,9 @@ export interface LocalIncident {
 }
 
 export const dummyIncidents: Incident[] = [
-  { id: "i1", employeeName: "Marcus Williams", type: "emergency", message: "Distress signal triggered — Location shared", time: "Just now" },
-  { id: "i2", employeeName: "James Rodriguez", type: "checkin", message: "Monitoring activated", time: "1 min ago" },
-  { id: "i3", employeeName: "Sarah Chen", type: "checkin", message: "Safe check-in completed", time: "2 min ago" },
-  { id: "i4", employeeName: "Priya Patel", type: "checkin", message: "Safe check-in completed", time: "5 min ago" },
-  { id: "i5", employeeName: "Aisha Johnson", type: "alert", message: "Entered monitored zone", time: "8 min ago" },
+  { id: "i1", employeeName: "[Demo] Marcus Williams", type: "emergency", message: "Distress signal triggered — Location shared", time: "Just now" },
+  { id: "i2", employeeName: "[Demo] James Rodriguez", type: "checkin", message: "Monitoring activated", time: "1 min ago" },
+  { id: "i3", employeeName: "[Demo] Sarah Chen", type: "checkin", message: "Safe check-in completed", time: "2 min ago" },
+  { id: "i4", employeeName: "[Demo] Priya Patel", type: "checkin", message: "Safe check-in completed", time: "5 min ago" },
+  { id: "i5", employeeName: "[Demo] Aisha Johnson", type: "alert", message: "Entered monitored zone", time: "8 min ago" },
 ];

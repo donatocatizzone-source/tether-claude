@@ -196,6 +196,40 @@ against `OLD` yet.
   swallow query errors into an empty/loading state, so rendering proves nothing about
   the query. Re-verify against real rows before trusting any of it.
 
+### Real-estate B2B — agents + brokerages — ✅ built (2026-09-06)
+
+The business side is now specifically a real-estate product, not generic
+field-employee safety. Built in six phases; each was its own PR.
+
+**Data model.** `properties` → `property_assignments` → `showings`, with
+`showings.session_id` optionally linking to the `professional_sessions` row
+that executed it. Showings are *intent* (a no-show is a showing with **no**
+session); sessions are *execution + safety*. They are deliberately separate
+tables — see the reasoning in `supabase/migrations/0001_realestate.sql`.
+
+**Agent side** (`/business/member`): `MyScheduleToday` + `MyPropertiesList`
+(`src/components/realestate/`), backed by `useMySchedule` / `useMyProperties`.
+Replaced `MOCK_PROPERTIES`, three hardcoded Unsplash cards.
+
+**Brokerage side** (Overwatch): `PropertiesView` / `PropertyFormModal` /
+`PropertyDetailView`, `ScheduleView` / `ScheduleShowingModal`, and
+`BrokerageAnalytics` behind a Safety|Brokerage toggle in `AnalyticsView`.
+
+**Seller-facing** (`/property/share/:token`): `PropertyShowingRecordPage`, a
+public page listing every showing at a property with GPS-verified badges.
+Managed from `SellerLinkPanel`; off by default per property.
+
+**Sessions start server-side.** `start_showing_session()` /
+`start_adhoc_showing_session()` create the `professional_sessions` row, so it
+is *structurally impossible* to create one without its `organization_id` or
+without the geofence copied from the property. The client used to omit the
+geofence entirely, which is why that feature had never fired.
+
+**Logic lives in tested modules**, not components: `lib/showings.ts`,
+`lib/brokerageMetrics.ts`, `lib/csv.ts` (66 tests total). The metrics
+especially — several are easy to get wrong in ways that flatter the
+brokerage (counting cancellations as no-shows, rendering 0/0 as "0%").
+
 ### Org system (backbone for all of B2B)
 - `organizations` + `user_roles` (multi-role per user: `user`/`admin`/`security_guard`/`manager`, checked via the security-definer `has_role()` function, never trusted from client-supplied role claims)
 - `org_invitations` — invite by email + role, auto-assigned to org/role on that email's signup via `handle_invitation_on_signup()`. **Status:** the manager-side create-invite flow is built (`InviteTeamModal.tsx`); `/invite/:token`'s accept-side page is still a `ScreenStub` (see Suggested build order, item 10).
@@ -300,8 +334,16 @@ so coordinators could schedule on an agent's behalf.
 - `src/components/layout/ScreenStub.tsx` — placeholder for not-yet-built
   screens (now only used by the two public share/invite pages)
 - `src/hooks/useGeoTracking.ts`, `useIncidentNotifications.ts` — ported directly from `OLD`
+- `src/hooks/useSessionCountdown.ts` — wall-clock countdown against a session's
+  persisted `expected_end_time`; shared by `TeamMemberView` and `ProGuardActive`
+- `src/hooks/useProfile.ts` — profile + `user_roles`, react-query cached; the
+  source of truth for the workspace/role gates
+- `src/lib/showings.ts`, `brokerageMetrics.ts`, `csv.ts` — pure, tested logic
+  (66 tests). New logic belongs here, not inside a component
+- `src/components/realestate/*` — agent-side schedule + assigned properties
 - **B2B: fully built** — `src/components/overwatch/*`, `src/components/pro/*`,
-  `src/components/TeamMemberView.tsx` (see Feature inventory above)
+  `src/components/TeamMemberView.tsx`, `src/pages/PropertyShowingRecordPage.tsx`
+  (see Feature inventory above)
 - **Old-demo consumer screens built** (skeletons only — see "What actually
   exists" above for what's missing relative to `OLD`): Home, ModeMenu,
   ActiveTimer, DatingMode, MarketplaceMode, RideMode (partial), Premium,
@@ -312,13 +354,17 @@ so coordinators could schedule on an agent's behalf.
   `property_assignments`, `showings`, the arm-on-arrival geofence rewrite,
   and the seller-record RPC
 - `supabase/bootstrap_org.sql` — one-time, run by hand; org + manager role
+- `supabase/seed_demo_realestate.sql` — optional, run by hand; seeds
+  properties, assignments and a day's showings so the B2B side can be
+  exercised with data (needs `bootstrap_org.sql` first)
 - `reference/tether-app-demo.html` — the early prototype (see Ground Truth)
 - `OLD/` (outside this repo) — the real prior build; see Ground Truth
 
 ## Suggested build order
 
-Items 1-3 and 9 are done. Remaining items don't depend on each other much —
-pick whichever consumer flow matters most next:
+**Items 1-3, 9, and the whole real-estate B2B track (12) are done.** The
+remaining items are all consumer-side and don't depend on each other much —
+pick whichever flow matters most next.
 
 1. ~~Push `supabase/schema.sql` to a fresh Supabase project; add `.env.local`
    with the project URL/anon key; regenerate `src/types/database.ts`.~~
@@ -347,6 +393,23 @@ pick whichever consumer flow matters most next:
     (`InviteAcceptPage.tsx`) and `/walk/share/:token`
     (`WalkSharePage.tsx`) are still `ScreenStub`s.
 11. Menu drawer's payment sheet + billing (still not started either build).
+12. ~~**Real-estate B2B**: refocus the business side on realtors + brokerages.~~
+    **Done 2026-09-06**, in six phases — see "Real-estate B2B" below.
+
+### Consumer-side gaps worth knowing before item 4
+
+The B2B work built patterns the consumer rebuild should reuse rather than
+reinvent:
+- `useSessionCountdown` (`src/hooks/`) already solves the "countdown against a
+  persisted end time" problem that `ActiveTimer.tsx` still does locally.
+- `PageContainer` (`src/components/layout/`) is the desktop-width wrapper;
+  most consumer screens still stretch edge-to-edge without it.
+- `lib/csv.ts`, `lib/showings.ts`, `lib/brokerageMetrics.ts` are the model for
+  where logic should live: pure, tested, outside components.
+- The security-definer-RPC pattern in
+  `get_property_showing_record()` is how `/walk/share/:token` should be built
+  — **not** the `using (true)` policy the `walk_sessions` table currently has
+  (see Known gaps).
 
 ## Design system
 
@@ -413,7 +476,52 @@ the same shadcn/Tailwind token setup:
   drawer's Billing/Upgrade buttons show a placeholder toast
 - `src/pages/StudentMode.tsx` — orphaned, unrouted duplicate stub, safe to
   delete (superseded by the already-built `student/Bus.tsx`/`Walk.tsx`/`Hangout.tsx`)
-- `WorkspaceProvider`'s `hasOrganization`/`isManager` are hardcoded `true`/`true`
-  (matching `OLD`'s own current state) — should eventually derive from the
-  signed-in user's `profiles.organization_id` / `has_role()` once that
-  wiring is worth the effort
+- ~~`WorkspaceProvider`'s `hasOrganization`/`isManager` are hardcoded `true`~~
+  **Fixed 2026-09-06** — both derive from the signed-in user's profile and
+  `user_roles` via `useProfile`, and default to `false`. `/business/admin`
+  and `/business/member` are gated by `RequireWorkspace` in `App.tsx`.
+
+### ⚠️ Open security issue: blanket public-read policies
+
+`walk_sessions` (schema.sql ~L674), `org_invitations` (~L666) and
+`circle_invitations` (~L707) each grant `for select using (true)`. The token
+is only a secret in the client's WHERE clause, so **anyone holding the anon
+key can `select *` and enumerate every row** — every walk destination, every
+invitee email, every invite token. They currently return nothing only because
+those tables are empty.
+
+The fix is the pattern already used by `get_property_showing_record()`: a
+`security definer` function that takes the token and returns only safe
+columns, with the table granting `anon` nothing. Doing this **now is cheap**,
+because `/walk/share/:token` and `/invite/:token` are both still `ScreenStub`s
+— nothing would break. It gets much more expensive once they're built.
+
+### Environment / config
+
+- **Google Maps billing is disabled** on the Cloud project, so maps render as
+  a grey "can't load Google Maps correctly" box on `localhost`. The key has a
+  referrer allowlist that works on the deployed GitHub Pages site, so this is
+  a local-only symptom. Deferred until funding.
+- **`VITE_DEMO_SEED`** (default off) mixes fabricated `[Demo]`-prefixed team
+  members into Overwatch for demos. Off by default on purpose: one seed row
+  reports an `emergency`, which becomes a critical incident in the live feed,
+  and a manager must never have to work out whether a distress alert is real.
+  When on, a persistent amber banner says so.
+- **PowerShell writes UTF-16LE** when you pipe with `>`. `supabase gen types
+  ... > file.ts` will silently produce a file that looks empty to `grep`.
+  Generate to a temp file, check it, then move it.
+- **Stale Vite module graph** has caused a blank page with a bogus "does not
+  provide an export named X" error three times in this repo, while `tsc` and
+  `npm run build` were both clean. Clear `node_modules/.vite` and restart
+  before assuming a real bug.
+
+### Verification habits that have caught real bugs here
+
+- `npm run build` is only `vite build` — **it does not type-check.** Use
+  `npx tsc --noEmit` as the real gate.
+- A rendering screen is not evidence its queries ran. Several Overwatch
+  components swallow query errors into an empty/loading state; that is how
+  "the schema is deployed" went unnoticed as false for weeks.
+- To view an authenticated-only screen without credentials, temporarily add
+  `&& false` to the guard in `App.tsx`, then revert and confirm with
+  `grep -n "&& false" src/App.tsx` before committing.
