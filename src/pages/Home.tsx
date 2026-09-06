@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
-import { Menu, Shield, ShieldCheck, Users, Star, Check, Heart, Car, ShoppingBag, GraduationCap } from "lucide-react";
+import { Menu, Shield, Users, Star, Check, Heart, Car, ShoppingBag, GraduationCap } from "lucide-react";
 import { useMenuDrawer } from "@/components/layout/MenuDrawerContext";
+import { PageContainer } from "@/components/layout/PageContainer";
 
 // Faithful port of reference/tether-app-demo.html #screen-home (~line 305).
 // Light theme is intentional here — it's the one screen in the demo that
@@ -17,38 +18,36 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <header className="sticky top-0 z-20 border-b border-border bg-card p-6 pb-6 pt-8 shadow-sm">
-        <div className="mb-4 flex items-center justify-between">
+      <header className="sticky top-0 z-20 border-b border-border bg-card">
+        <PageContainer wide className="flex items-center justify-between py-4">
           <button
             onClick={openMenu}
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-muted transition hover:brightness-95"
+            className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted transition hover:brightness-95"
           >
             <Menu className="h-5 w-5 text-foreground" />
           </button>
-          <div className="relative">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-card bg-blue-100 text-2xl shadow">
-              👨🏻
-            </div>
-            <div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border-2 border-card bg-blue-500 text-white shadow-sm">
-              <Check className="h-3 w-3" />
+          <div>
+            <h2 className="text-right text-lg font-bold leading-tight">Hello, Gabe</h2>
+            <div className="mt-0.5 flex items-center justify-end gap-2">
+              <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground" />
+              <p className="text-xs font-medium text-muted-foreground">Protection inactive</p>
             </div>
           </div>
-        </div>
-        <h2 className="text-2xl font-bold">Hello, Gabe</h2>
-        <div className="mt-1 flex items-center gap-2">
-          <span className="h-2 w-2 rounded-full bg-slate-300" />
-          <p className="text-xs font-medium text-muted-foreground">Protection is currently inactive</p>
-        </div>
+          <div className="relative">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-foreground text-sm font-bold text-background">
+              G
+            </div>
+            <div className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-card bg-primary text-primary-foreground">
+              <Check className="h-2.5 w-2.5" />
+            </div>
+          </div>
+        </PageContainer>
       </header>
 
-      <div className="p-6">
-        <div className="relative overflow-hidden rounded-[2rem] border border-border bg-card p-6 shadow-xl">
-          <div className="pointer-events-none absolute right-0 top-0 p-4 opacity-5">
-            <ShieldCheck className="h-32 w-32 text-foreground" />
-          </div>
-
-          <div className="relative z-10">
-            <div className="flex items-center gap-2 mb-2">
+      <PageContainer wide className="py-6">
+        <div className="lg:grid lg:grid-cols-[1.1fr_1fr] lg:items-start lg:gap-6">
+          <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+            <div className="mb-2 flex items-center gap-2">
               <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
               <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600">System Online</span>
             </div>
@@ -57,7 +56,7 @@ export default function Home() {
             <div className="mb-6 grid grid-cols-2 gap-3">
               <button
                 onClick={() => navigate("/consumer/circle")}
-                className="rounded-xl border border-border bg-muted p-3 text-left transition hover:brightness-95"
+                className="rounded-lg border border-border bg-muted p-3 text-left transition hover:brightness-95"
               >
                 <div className="mb-1 text-[10px] font-bold uppercase text-muted-foreground">Safety Circle</div>
                 <div className="flex items-center gap-1 text-sm font-bold">
@@ -66,7 +65,7 @@ export default function Home() {
               </button>
               <button
                 onClick={() => navigate("/consumer/vouch")}
-                className="rounded-xl border border-border bg-muted p-3 text-left transition hover:brightness-95"
+                className="rounded-lg border border-border bg-muted p-3 text-left transition hover:brightness-95"
               >
                 <div className="mb-1 text-[10px] font-bold uppercase text-muted-foreground">Vouch Score</div>
                 <div className="flex items-center gap-1 text-sm font-bold">
@@ -77,53 +76,45 @@ export default function Home() {
 
             <button
               onClick={() => navigate("/consumer/active-timer")}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-gradient py-4 font-bold text-white shadow-lg shadow-blue-200 transition active:scale-95 hover:shadow-xl"
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-brand-gradient py-3.5 font-bold text-white transition active:scale-[0.98]"
             >
-              <span className="rounded-full bg-white/20 p-1">
-                <Shield className="h-4 w-4 fill-current" />
-              </span>
+              <Shield className="h-4 w-4 fill-current" />
               Arm Safety Tether
             </button>
           </div>
-        </div>
-      </div>
 
-      <div className="px-6 pb-28">
-        <div className="grid grid-cols-2 gap-4">
-          <ModeCard
-            onClick={() => navigate("/consumer/mode/dating")}
-            icon={Heart}
-            iconClass="bg-pink-50 text-pink-500 group-hover:bg-pink-100"
-            hoverBorder="hover:border-pink-200"
-            title="Dating"
-            subtitle="Meetings & Dates"
-          />
-          <ModeCard
-            onClick={() => navigate("/consumer/mode/ride")}
-            icon={Car}
-            iconClass="bg-indigo-50 text-indigo-500 group-hover:bg-indigo-100"
-            hoverBorder="hover:border-indigo-200"
-            title="Ride"
-            subtitle="Solo Travel"
-          />
-          <ModeCard
-            onClick={() => navigate("/consumer/mode/market")}
-            icon={ShoppingBag}
-            iconClass="bg-sky-50 text-sky-500 group-hover:bg-sky-100"
-            hoverBorder="hover:border-sky-200"
-            title="Marketplace"
-            subtitle="Buying & Selling"
-          />
-          <ModeCard
-            onClick={() => navigate("/consumer/mode/student")}
-            icon={GraduationCap}
-            iconClass="bg-emerald-50 text-emerald-500 group-hover:bg-emerald-100"
-            hoverBorder="hover:border-emerald-200"
-            title="Student"
-            subtitle="Campus Safety"
-          />
+          <div className="mt-6 grid grid-cols-2 gap-4 lg:mt-0">
+            <ModeCard
+              onClick={() => navigate("/consumer/mode/dating")}
+              icon={Heart}
+              iconClass="bg-pink-50 text-pink-500 group-hover:bg-pink-100"
+              title="Dating"
+              subtitle="Meetings & Dates"
+            />
+            <ModeCard
+              onClick={() => navigate("/consumer/mode/ride")}
+              icon={Car}
+              iconClass="bg-indigo-50 text-indigo-500 group-hover:bg-indigo-100"
+              title="Ride"
+              subtitle="Solo Travel"
+            />
+            <ModeCard
+              onClick={() => navigate("/consumer/mode/market")}
+              icon={ShoppingBag}
+              iconClass="bg-sky-50 text-sky-500 group-hover:bg-sky-100"
+              title="Marketplace"
+              subtitle="Buying & Selling"
+            />
+            <ModeCard
+              onClick={() => navigate("/consumer/mode/student")}
+              icon={GraduationCap}
+              iconClass="bg-emerald-50 text-emerald-500 group-hover:bg-emerald-100"
+              title="Student"
+              subtitle="Campus Safety"
+            />
+          </div>
         </div>
-      </div>
+      </PageContainer>
     </div>
   );
 }
@@ -132,23 +123,21 @@ function ModeCard({
   onClick,
   icon: Icon,
   iconClass,
-  hoverBorder,
   title,
   subtitle,
 }: {
   onClick: () => void;
   icon: typeof Heart;
   iconClass: string;
-  hoverBorder: string;
   title: string;
   subtitle: string;
 }) {
   return (
     <button
       onClick={onClick}
-      className={`group rounded-2xl border border-border bg-card p-4 text-left shadow-sm transition active:scale-95 ${hoverBorder}`}
+      className="group rounded-2xl border border-border bg-card p-4 text-left shadow-sm transition hover:border-foreground/20 active:scale-[0.98]"
     >
-      <div className={`mb-3 flex h-10 w-10 items-center justify-center rounded-xl transition ${iconClass}`}>
+      <div className={`mb-3 flex h-10 w-10 items-center justify-center rounded-lg transition ${iconClass}`}>
         <Icon className="h-5 w-5" />
       </div>
       <div className="text-sm font-bold text-foreground">{title}</div>

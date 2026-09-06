@@ -22,12 +22,30 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <MenuDrawerProvider>
-      <div className="min-h-screen w-full bg-background pb-24">
-        {children}
+      <div className="w-full bg-background md:flex md:items-stretch">
+        {/* Desktop nav rail — replaces the mobile bottom tab bar at md:+,
+            same pattern as OverwatchSidebar/OverwatchDashboard's responsive
+            sidebar on the B2B side. */}
+        <aside className="hidden md:flex md:w-20 md:flex-shrink-0 md:flex-col md:items-center md:gap-1 md:border-r md:border-border md:bg-card md:py-6 lg:w-52 lg:items-stretch lg:px-3">
+          <RailItem {...NAV_ITEMS[0]} />
+          <RailItem {...NAV_ITEMS[1]} />
+          <RailItem {...NAV_ITEMS[2]} />
+          <RailItem {...NAV_ITEMS[3]} />
+          <button
+            onClick={() => navigate("/consumer/active-timer")}
+            className="mt-2 flex items-center gap-3 rounded-lg bg-foreground px-3 py-2.5 text-background transition hover:opacity-90 lg:justify-start"
+          >
+            <Shield className="h-5 w-5 flex-shrink-0" />
+            <span className="hidden text-sm font-semibold lg:inline">Arm Tether</span>
+          </button>
+        </aside>
+
+        <div className="min-h-screen w-full min-w-0 pb-24 md:flex-1 md:pb-0">{children}</div>
 
         <MenuDrawer />
 
-        <nav className="fixed inset-x-0 bottom-0 z-40 mx-auto flex h-24 max-w-md items-start justify-around rounded-t-[40px] border-t border-slate-100 bg-white px-2 pt-4">
+        {/* Mobile bottom tab bar */}
+        <nav className="fixed inset-x-0 bottom-0 z-40 mx-auto flex h-24 max-w-md items-start justify-around rounded-t-[40px] border-t border-slate-100 bg-white px-2 pt-4 md:hidden">
           <NavItem {...NAV_ITEMS[0]} />
           <NavItem {...NAV_ITEMS[1]} />
           <div className="w-16" /> {/* spacer for the floating button */}
@@ -36,7 +54,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
           <button
             onClick={() => navigate("/consumer/active-timer")}
-            className="absolute -top-8 left-1/2 flex h-16 w-16 -translate-x-1/2 transform items-center justify-center rounded-full border-4 border-slate-50 bg-slate-900 shadow-2xl transition hover:scale-110 active:scale-95"
+            className="absolute -top-8 left-1/2 flex h-16 w-16 -translate-x-1/2 transform items-center justify-center rounded-full border-4 border-slate-50 bg-slate-900 shadow-lg transition hover:scale-110 active:scale-95"
           >
             <Shield className="h-7 w-7 text-white" />
           </button>
@@ -60,6 +78,24 @@ function NavItem({ to, label, icon: Icon }: (typeof NAV_ITEMS)[number]) {
     >
       <Icon className="mb-1 h-6 w-6" />
       {label}
+    </NavLink>
+  );
+}
+
+function RailItem({ to, label, icon: Icon }: (typeof NAV_ITEMS)[number]) {
+  return (
+    <NavLink
+      to={to}
+      end={to === "/consumer"}
+      className={({ isActive }) =>
+        cn(
+          "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition lg:justify-start",
+          isActive ? "bg-accent text-foreground" : "text-muted-foreground hover:bg-accent hover:text-foreground",
+        )
+      }
+    >
+      <Icon className="h-5 w-5 flex-shrink-0" />
+      <span className="hidden lg:inline">{label}</span>
     </NavLink>
   );
 }
