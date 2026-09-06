@@ -18,18 +18,32 @@
 
 @layer base {
   :root {
-    /* Theme-invariant brand/mode accents — same in light and dark, see
-       CLAUDE.md's design-system table. */
+    /* Accessibility pass: every foreground/background pair below is
+       verified against WCAG 2.1 AA (4.5:1 for text, 3:1 for UI-component
+       boundaries like borders/focus rings) — see the contrast audit in
+       PR history for the exact numbers. Where the original demo's colors
+       failed (primary/secondary/destructive button text, borders, the
+       mode-* accents used as text), the HSL lightness was adjusted just
+       enough to pass; hue/saturation (the actual brand colors) are
+       unchanged. mode-* are no longer theme-invariant — see below.
+       --radius unaffected. */
     --radius: 1rem;
-    --mode-safe: 172 66% 50%;         /* teal-400 */
-    --mode-active: 38 92% 50%;        /* amber-500 */
-    --mode-danger: 0 84% 60%;         /* red-500 */
-    --mode-dating: 350 89% 60%;       /* rose-500 */
-    --mode-ride: 199 89% 48%;         /* sky-500 / #0ea5e9 */
 
-    /* LIGHT (default). Values match what the light consumer screens
-       (home, circle, vouch, settings, mode-menu, ride) already hardcode
-       — slate-50 page bg, white cards, slate-900 text. */
+    /* Mode accent colors, LIGHT variant — darkened from the reference's
+       literal Tailwind shade so text-mode-* passes 4.5:1 on a light
+       background (e.g. RideMode's "Ride Mode" label, ScreenStub's
+       eyebrow). Same hue/saturation as the dark variant below, just
+       darker. */
+    --mode-safe: 172 66% 28%;
+    --mode-active: 38 92% 30%;
+    --mode-danger: 0 84% 46%;
+    --mode-dating: 350 89% 45%;
+    --mode-ride: 199 89% 34%;
+
+    /* LIGHT (default). Base background/card/foreground match what the
+       light consumer screens (home, circle, vouch, settings, mode-menu,
+       ride) already hardcode — slate-50 page bg, white cards, slate-900
+       text — those already passed AA and are unchanged. */
     --background: 210 40% 98%;        /* #f8fafc slate-50 */
     --foreground: 222 47% 11%;        /* #0f172a slate-900 */
 
@@ -39,38 +53,49 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
 
-    --primary: 172 66% 45%;
+    --primary: 172 66% 28%;            /* was 45% — white button text was 2.21:1, now 5.19:1 */
     --primary-foreground: 210 40% 98%;
 
-    --secondary: 205 55% 51%;
+    --secondary: 205 55% 40%;          /* was 51% — white button text was 3.42:1, now 5.14:1 */
     --secondary-foreground: 210 40% 98%;
 
     --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;  /* slate-500 */
+    --muted-foreground: 215 25% 40%;   /* was 215 16% 47% — worst-case pairing was 4.30:1, now 5.70:1 */
 
     --accent: 210 40% 96%;
     --accent-foreground: 222 47% 11%;
 
-    --destructive: 0 84% 60%;
+    --destructive: 0 84% 46%;          /* was 60% — white button text was 3.61:1, now 4.99:1 */
     --destructive-foreground: 210 40% 98%;
 
-    --border: 214 32% 91%;            /* slate-100 */
-    --input: 214 32% 91%;
-    --ring: 172 66% 45%;
+    --border: 215 20% 55%;             /* was 214 32% 91% — 1.19:1 (fails non-text 3:1), now 3.44:1 */
+    --input: 215 20% 55%;
+    --ring: 172 66% 28%;
 
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 222 47% 11%;
-    --sidebar-primary: 172 66% 45%;
+    --sidebar-primary: 172 66% 28%;
     --sidebar-primary-foreground: 210 40% 98%;
     --sidebar-accent: 210 40% 96%;
     --sidebar-accent-foreground: 222 47% 11%;
-    --sidebar-border: 214 32% 91%;
-    --sidebar-ring: 172 66% 45%;
+    --sidebar-border: 215 20% 55%;
+    --sidebar-ring: 172 66% 28%;
   }
 
-  /* DARK — the original scaffold's only palette (moved here unchanged).
-     Applied via next-themes' class strategy (adds "dark" to <html>). */
+  /* DARK. Base background/card/foreground/primary already passed AA
+     comfortably (primary especially: bright teal + dark text = 9.57:1)
+     and are unchanged; secondary/destructive/border get the same fix as
+     light mode since they were failing there too (identical values were
+     shared between both themes before this pass). */
   .dark {
+    /* Mode accent colors, DARK variant — the reference's original
+       values; already pass 4.5:1 as text against this dark background. */
+    --mode-safe: 172 66% 50%;
+    --mode-active: 38 92% 50%;
+    --mode-danger: 0 84% 60%;
+    --mode-dating: 350 89% 60%;
+    --mode-ride: 199 89% 48%;
+
     --background: 222 47% 11%;        /* #0f172a slate-900 */
     --foreground: 210 40% 98%;        /* #f8fafc slate-50 */
 
@@ -80,23 +105,23 @@
     --popover: 222 39% 13%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 172 66% 50%;           /* #2dd4bf teal-400 - "safe" */
+    --primary: 172 66% 50%;           /* #2dd4bf teal-400 - "safe" — already 9.57:1, unchanged */
     --primary-foreground: 222 47% 11%;
 
-    --secondary: 205 55% 51%;         /* #4292c6 blue - brand gradient start */
+    --secondary: 205 55% 40%;         /* was 51% — white button text was 3.42:1, now 5.14:1 */
     --secondary-foreground: 210 40% 98%;
 
     --muted: 222 30% 20%;
-    --muted-foreground: 215 20% 65%;
+    --muted-foreground: 215 20% 65%;  /* already 6.29-6.96:1, unchanged */
 
     --accent: 222 30% 20%;
     --accent-foreground: 210 40% 98%;
 
-    --destructive: 0 84% 60%;         /* #ef4444 red-500 - "danger" */
+    --destructive: 0 84% 46%;         /* was 60% — white button text was 3.61:1, now 4.99:1 */
     --destructive-foreground: 210 40% 98%;
 
-    --border: 222 30% 22%;
-    --input: 222 30% 22%;
+    --border: 222 20% 45%;            /* was 222 30% 22% — 1.39:1 (fails non-text 3:1), now 3.29:1 */
+    --input: 222 20% 45%;
     --ring: 172 66% 50%;
 
     --sidebar-background: 222 47% 9%;
@@ -105,7 +130,7 @@
     --sidebar-primary-foreground: 222 47% 11%;
     --sidebar-accent: 222 30% 20%;
     --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 222 30% 22%;
+    --sidebar-border: 222 20% 45%;
     --sidebar-ring: 172 66% 50%;
   }
 }
