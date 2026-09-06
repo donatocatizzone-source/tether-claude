@@ -12,23 +12,23 @@ export default function Home() {
   const { openMenu } = useMenuDrawer();
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
-      <header className="sticky top-0 z-20 border-b border-slate-100 bg-white p-6 pb-6 pt-8 shadow-sm">
+    <div className="min-h-screen bg-background text-foreground">
+      <header className="sticky top-0 z-20 border-b border-border bg-card p-6 pb-6 pt-8 shadow-sm">
         <div className="mb-4 grid grid-cols-3 items-center">
           <button
             onClick={openMenu}
-            className="flex h-10 w-10 items-center justify-center justify-self-start rounded-full bg-slate-100 transition hover:bg-slate-200"
+            className="flex h-10 w-10 items-center justify-center justify-self-start rounded-full bg-muted transition hover:brightness-95"
           >
-            <Menu className="h-5 w-5 text-slate-900" />
+            <Menu className="h-5 w-5 text-foreground" />
           </button>
           <div className="justify-self-center">
             <WorkspaceToggle variant="light" />
           </div>
           <div className="relative justify-self-end">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-white bg-blue-100 text-2xl shadow">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-card bg-blue-100 text-2xl shadow">
               👨🏻
             </div>
-            <div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border-2 border-white bg-blue-500 text-white shadow-sm">
+            <div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border-2 border-card bg-blue-500 text-white shadow-sm">
               <Star className="h-3 w-3" />
             </div>
           </div>
@@ -36,12 +36,12 @@ export default function Home() {
         <h2 className="text-2xl font-bold">Hello, Gabe</h2>
         <div className="mt-1 flex items-center gap-2">
           <span className="h-2 w-2 rounded-full bg-slate-300" />
-          <p className="text-xs font-medium text-slate-500">Protection is currently inactive</p>
+          <p className="text-xs font-medium text-muted-foreground">Protection is currently inactive</p>
         </div>
       </header>
 
       <div className="p-6">
-        <div className="relative overflow-hidden rounded-[2rem] border border-slate-100 bg-white p-6 shadow-xl">
+        <div className="relative overflow-hidden rounded-[2rem] border border-border bg-card p-6 shadow-xl">
           <div className="flex items-center gap-2 mb-2">
             <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
             <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600">System Online</span>
@@ -51,18 +51,18 @@ export default function Home() {
           <div className="mb-6 grid grid-cols-2 gap-3">
             <button
               onClick={() => navigate("/circle")}
-              className="rounded-xl border border-slate-100 bg-slate-50 p-3 text-left transition hover:bg-slate-100"
+              className="rounded-xl border border-border bg-muted p-3 text-left transition hover:brightness-95"
             >
-              <div className="mb-1 text-[10px] font-bold uppercase text-slate-400">Safety Circle</div>
+              <div className="mb-1 text-[10px] font-bold uppercase text-muted-foreground">Safety Circle</div>
               <div className="flex items-center gap-1 text-sm font-bold">
                 <Users className="h-3 w-3" /> 3 Active
               </div>
             </button>
             <button
               onClick={() => navigate("/vouch")}
-              className="rounded-xl border border-slate-100 bg-slate-50 p-3 text-left transition hover:bg-slate-100"
+              className="rounded-xl border border-border bg-muted p-3 text-left transition hover:brightness-95"
             >
-              <div className="mb-1 text-[10px] font-bold uppercase text-slate-400">Vouch Score</div>
+              <div className="mb-1 text-[10px] font-bold uppercase text-muted-foreground">Vouch Score</div>
               <div className="flex items-center gap-1 text-sm font-bold">
                 <Star className="h-3 w-3 fill-current text-yellow-400" /> 98/100
               </div>
@@ -139,13 +139,13 @@ function ModeCard({
   return (
     <button
       onClick={onClick}
-      className={`group rounded-2xl border border-slate-100 bg-white p-4 text-left shadow-sm transition active:scale-95 ${hoverBorder}`}
+      className={`group rounded-2xl border border-border bg-card p-4 text-left shadow-sm transition active:scale-95 ${hoverBorder}`}
     >
       <div className={`mb-3 flex h-10 w-10 items-center justify-center rounded-xl transition ${iconClass}`}>
         <Icon className="h-5 w-5" />
       </div>
-      <div className="text-sm font-bold text-slate-900">{title}</div>
-      <div className="mt-0.5 text-[11px] text-slate-500">{subtitle}</div>
+      <div className="text-sm font-bold text-foreground">{title}</div>
+      <div className="mt-0.5 text-[11px] text-muted-foreground">{subtitle}</div>
     </button>
   );
 }

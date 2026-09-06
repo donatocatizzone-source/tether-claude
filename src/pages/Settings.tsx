@@ -26,29 +26,29 @@ const SECTIONS = [
 
 export default function Settings() {
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-background">
       <div className="flex flex-col p-6 pb-24 pt-16">
-        <h2 className="mb-6 text-2xl font-bold text-slate-900">Settings</h2>
+        <h2 className="mb-6 text-2xl font-bold text-foreground">Settings</h2>
 
         <div className="space-y-6">
           {SECTIONS.map((section) => (
             <div key={section.label}>
-              <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">
+              <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">
                 {section.label}
               </h3>
-              <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
+              <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
                 {section.rows.map((row, i) => (
                   <button
                     key={row.title}
-                    className={`flex w-full items-center justify-between p-4 hover:bg-slate-50 ${
-                      i < section.rows.length - 1 ? "border-b border-slate-50" : ""
+                    className={`flex w-full items-center justify-between p-4 hover:bg-muted ${
+                      i < section.rows.length - 1 ? "border-b border-border" : ""
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <row.icon className="h-5 w-5 text-slate-400" />
-                      <span className="text-sm font-medium text-slate-700">{row.title}</span>
+                      <row.icon className="h-5 w-5 text-muted-foreground" />
+                      <span className="text-sm font-medium text-foreground">{row.title}</span>
                     </div>
-                    <ChevronRight className="h-4 w-4 text-slate-300" />
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
                   </button>
                 ))}
               </div>

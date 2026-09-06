@@ -31,7 +31,7 @@ export function WorkspaceToggle({
     <div
       className={cn(
         "inline-flex items-center rounded-full p-1",
-        isDark ? "bg-slate-800" : "bg-slate-100",
+        isDark ? "bg-slate-800" : "bg-muted",
         fullWidth && "flex w-full",
       )}
     >
@@ -43,10 +43,10 @@ export function WorkspaceToggle({
           workspace === "consumer"
             ? isDark
               ? "bg-slate-700 text-white shadow"
-              : "bg-white text-slate-900 shadow-sm"
+              : "bg-card text-foreground shadow-sm"
             : isDark
               ? "text-slate-400 hover:text-white"
-              : "text-slate-400 hover:text-slate-600",
+              : "text-muted-foreground hover:text-foreground",
         )}
       >
         <Users className="h-3.5 w-3.5" /> Consumer
@@ -60,7 +60,7 @@ export function WorkspaceToggle({
             ? "bg-yellow-500 text-slate-900 shadow"
             : isDark
               ? "text-slate-400 hover:text-white"
-              : "text-slate-400 hover:text-slate-600",
+              : "text-muted-foreground hover:text-foreground",
         )}
       >
         <Briefcase className="h-3.5 w-3.5" /> Professional

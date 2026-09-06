@@ -18,6 +18,59 @@
 
 @layer base {
   :root {
+    /* Theme-invariant brand/mode accents — same in light and dark, see
+       CLAUDE.md's design-system table. */
+    --radius: 1rem;
+    --mode-safe: 172 66% 50%;         /* teal-400 */
+    --mode-active: 38 92% 50%;        /* amber-500 */
+    --mode-danger: 0 84% 60%;         /* red-500 */
+    --mode-dating: 350 89% 60%;       /* rose-500 */
+    --mode-ride: 199 89% 48%;         /* sky-500 / #0ea5e9 */
+
+    /* LIGHT (default). Values match what the light consumer screens
+       (home, circle, vouch, settings, mode-menu, ride) already hardcode
+       — slate-50 page bg, white cards, slate-900 text. */
+    --background: 210 40% 98%;        /* #f8fafc slate-50 */
+    --foreground: 222 47% 11%;        /* #0f172a slate-900 */
+
+    --card: 0 0% 100%;                 /* white */
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    --primary: 172 66% 45%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 205 55% 51%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;  /* slate-500 */
+
+    --accent: 210 40% 96%;
+    --accent-foreground: 222 47% 11%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214 32% 91%;            /* slate-100 */
+    --input: 214 32% 91%;
+    --ring: 172 66% 45%;
+
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 222 47% 11%;
+    --sidebar-primary: 172 66% 45%;
+    --sidebar-primary-foreground: 210 40% 98%;
+    --sidebar-accent: 210 40% 96%;
+    --sidebar-accent-foreground: 222 47% 11%;
+    --sidebar-border: 214 32% 91%;
+    --sidebar-ring: 172 66% 45%;
+  }
+
+  /* DARK — the original scaffold's only palette (moved here unchanged).
+     Applied via next-themes' class strategy (adds "dark" to <html>). */
+  .dark {
     --background: 222 47% 11%;        /* #0f172a slate-900 */
     --foreground: 210 40% 98%;        /* #f8fafc slate-50 */
 
@@ -45,15 +98,6 @@
     --border: 222 30% 22%;
     --input: 222 30% 22%;
     --ring: 172 66% 50%;
-
-    --radius: 1rem;
-
-    /* Mode-specific accents, referenced via bg-mode-*, text-mode-* utilities below */
-    --mode-safe: 172 66% 50%;         /* teal-400 */
-    --mode-active: 38 92% 50%;        /* amber-500 */
-    --mode-danger: 0 84% 60%;         /* red-500 */
-    --mode-dating: 350 89% 60%;       /* rose-500 */
-    --mode-ride: 199 89% 48%;         /* sky-500 / #0ea5e9 */
 
     --sidebar-background: 222 47% 9%;
     --sidebar-foreground: 210 40% 98%;

@@ -13,6 +13,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useMenuDrawer } from "@/components/layout/MenuDrawerContext";
 import { WorkspaceToggle } from "@/components/layout/WorkspaceToggle";
+import { ThemeToggle } from "@/components/layout/ThemeToggle";
 
 // Port of reference/tether-app-demo.html #menu-drawer (~line 204), with
 // one deliberate deviation: the original's one-way "Switch to Professional"
@@ -58,6 +59,11 @@ export function MenuDrawer() {
           <div className="mb-6">
             <div className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-500">Workspace</div>
             <WorkspaceToggle variant="dark" fullWidth onSelect={closeMenu} />
+          </div>
+
+          <div className="mb-6">
+            <div className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-500">Appearance</div>
+            <ThemeToggle fullWidth />
           </div>
 
           <div className="mb-2 mt-2 text-xs font-bold uppercase tracking-wider text-slate-500">
