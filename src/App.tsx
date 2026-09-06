@@ -14,6 +14,7 @@ import MemberPage from "@/pages/MemberPage";
 import AdminPage from "@/pages/AdminPage";
 import WalkSharePage from "@/pages/WalkSharePage";
 import PropertyShowingRecordPage from "@/pages/PropertyShowingRecordPage";
+import CreateOrganizationPage from "@/pages/CreateOrganizationPage";
 import InviteAcceptPage from "@/pages/InviteAcceptPage";
 import NotFound from "@/pages/NotFound";
 
@@ -66,7 +67,9 @@ function RequireWorkspace({ need, children }: { need: "member" | "admin"; childr
     );
   }
 
-  if (!hasOrganization) return <Navigate to="/consumer" replace />;
+  // Send org-less users to the page that fixes their problem, not to the
+  // consumer home with no explanation of why they were moved.
+  if (!hasOrganization) return <Navigate to="/business/new" replace />;
   if (need === "admin" && !isManager) return <Navigate to="/business/member" replace />;
   return <>{children}</>;
 }
@@ -112,6 +115,17 @@ export default function App() {
                   element={
                     <ProtectedRoute>
                       <ConsumerPage />
+                    </ProtectedRoute>
+                  }
+                />
+                {/* Outside RequireWorkspace on purpose: that guard redirects
+                    org-less users away from /business/*, and they are exactly
+                    who needs this page. */}
+                <Route
+                  path="/business/new"
+                  element={
+                    <ProtectedRoute>
+                      <CreateOrganizationPage />
                     </ProtectedRoute>
                   }
                 />

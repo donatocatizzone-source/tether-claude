@@ -1349,3 +1349,91 @@ $$;
 revoke all on function public.get_property_showing_record(uuid) from public;
 grant execute on function public.get_property_showing_record(uuid) to anon, authenticated;
 
+
+
+-- =====================================================================
+-- ORG SELF-SERVE (mirrors supabase/migrations/0002_org_self_serve.sql)
+-- =====================================================================
+-- Kept in sync with that migration by hand — edit both in the same commit.
+-- See that file for the full reasoning: why this is an RPC rather than an
+-- INSERT policy, and why the profiles UPDATE grant had to be narrowed.
+
+
+-- ---------------------------------------------------------------------
+-- 1. create_organization()
+-- ---------------------------------------------------------------------
+create or replace function public.create_organization(_name text, _job_title text default '')
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  _uid uuid := auth.uid();
+  _clean_name text := btrim(coalesce(_name, ''));
+  _existing uuid;
+  _org_id uuid;
+begin
+  if _uid is null then
+    raise exception 'Not signed in';
+  end if;
+
+  if length(_clean_name) < 2 then
+    raise exception 'Organisation name must be at least 2 characters';
+  end if;
+
+  -- One org per user: get_user_org_id() returns a single uuid, and the whole
+  -- RLS model is built on that. Fail loudly rather than silently moving
+  -- someone out of a brokerage they are already in.
+  select organization_id into _existing from public.profiles where user_id = _uid;
+  if _existing is not null then
+    raise exception 'You already belong to an organisation';
+  end if;
+
+  insert into public.organizations (name, subscription_tier)
+  values (_clean_name, 'free')
+  returning id into _org_id;
+
+  update public.profiles
+    set organization_id = _org_id,
+        job_title = coalesce(nullif(btrim(_job_title), ''), job_title)
+    where user_id = _uid;
+
+  -- Both roles, matching bootstrap_org.sql. Several policies check 'manager'
+  -- specifically while others check 'admin', so the creator needs both to
+  -- exercise the whole console.
+  insert into public.user_roles (user_id, role) values (_uid, 'admin')
+    on conflict (user_id, role) do nothing;
+  insert into public.user_roles (user_id, role) values (_uid, 'manager')
+    on conflict (user_id, role) do nothing;
+
+  return _org_id;
+end;
+$$;
+
+revoke all on function public.create_organization(text, text) from public;
+grant execute on function public.create_organization(text, text) to authenticated;
+
+-- ---------------------------------------------------------------------
+-- 2. Make profiles.organization_id non-writable by clients
+-- ---------------------------------------------------------------------
+-- Load-bearing. Do not "restore" the table-level grant: it is what allowed a
+-- client to move itself into another brokerage and read its lockbox codes.
+-- The only profile UPDATE in the app writes full_name/job_title/
+-- job_description/phone (see TeamMemberView), all of which stay granted.
+-- Membership changes go through create_organization() and the invitation
+-- flow, both security definer, which run as owner and are unaffected.
+revoke update on public.profiles from authenticated;
+revoke update on public.profiles from anon;
+
+grant update (
+  full_name,
+  avatar_url,
+  safe_word,
+  duress_pin_hash,
+  job_title,
+  job_description,
+  phone,
+  updated_at
+) on public.profiles to authenticated;
+
