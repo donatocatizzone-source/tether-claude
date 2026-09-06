@@ -23,7 +23,7 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
   const [inviteInfo, setInviteInfo] = useState<{ email: string; orgName: string } | null>(null);
-  const { signIn, signUp, resendConfirmation } = useAuth();
+  const { signIn, signUp, resendConfirmation, resetPassword } = useAuth();
   const navigate = useNavigate();
 
   // Shows which brokerage the invite is for.
@@ -84,6 +84,23 @@ export default function AuthPage() {
     const { error } = await resendConfirmation(email);
     if (error) toast.error(error.message);
     else toast.success("Confirmation email sent again");
+  }
+
+  async function handleForgotPassword() {
+    if (!email.trim()) {
+      toast.error("Enter your email address first");
+      return;
+    }
+    const { error } = await resetPassword(email.trim());
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    // Deliberately does not confirm whether the address has an account —
+    // that would turn this form into an account-enumeration oracle.
+    toast.success("Check your email", {
+      description: "If that address has an account, a reset link is on its way.",
+    });
   }
 
   return (
@@ -159,9 +176,20 @@ export default function AuthPage() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password" className="text-foreground">
-              Password
-            </Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="password" className="text-foreground">
+                Password
+              </Label>
+              {isLogin && (
+                <button
+                  type="button"
+                  onClick={handleForgotPassword}
+                  className="text-xs text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  Forgot password?
+                </button>
+              )}
+            </div>
             <Input
               id="password"
               type="password"

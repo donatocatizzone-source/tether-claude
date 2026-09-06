@@ -19,6 +19,8 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   resendConfirmation: (email: string) => Promise<{ error: Error | null }>;
+  resetPassword: (email: string) => Promise<{ error: Error | null }>;
+  updatePassword: (password: string) => Promise<{ error: Error | null }>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -93,8 +95,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
   }
 
+  async function resetPassword(email: string) {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      // Must land inside the app's base path — production is served from
+      // /tether-claude/, so an origin-rooted link 404s.
+      redirectTo: appUrl("auth/update-password"),
+    });
+    return { error: error as Error | null };
+  }
+
+  async function updatePassword(password: string) {
+    const { error } = await supabase.auth.updateUser({ password });
+    return { error: error as Error | null };
+  }
+
   return (
-    <AuthContext.Provider value={{ session, user, loading, signUp, signIn, signOut, resendConfirmation }}>
+    <AuthContext.Provider value={{ session, user, loading, signUp, signIn, signOut, resendConfirmation, resetPassword, updatePassword }}>
       {children}
     </AuthContext.Provider>
   );

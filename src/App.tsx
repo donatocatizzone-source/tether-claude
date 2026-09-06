@@ -17,6 +17,7 @@ import AdminPage from "@/pages/AdminPage";
 import WalkSharePage from "@/pages/WalkSharePage";
 import PropertyShowingRecordPage from "@/pages/PropertyShowingRecordPage";
 import CreateOrganizationPage from "@/pages/CreateOrganizationPage";
+import UpdatePasswordPage from "@/pages/UpdatePasswordPage";
 import InviteAcceptPage from "@/pages/InviteAcceptPage";
 import NotFound from "@/pages/NotFound";
 
@@ -125,6 +126,10 @@ export default function App() {
                     </AuthRoute>
                   }
                 />
+                {/* NOT wrapped in AuthRoute: a password-recovery token becomes
+                    a real session, so AuthRoute would redirect the user away
+                    before they could set a new password. */}
+                <Route path="/auth/update-password" element={<UpdatePasswordPage />} />
                 <Route
                   path="/consumer/*"
                   element={
