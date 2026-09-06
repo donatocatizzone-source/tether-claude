@@ -25,11 +25,19 @@ export interface LatLng {
   lng: number;
 }
 
+export interface MapMarker {
+  position: LatLng;
+  /** Short marker label, e.g. a contact's initial. */
+  label?: string;
+}
+
 interface GoogleMapViewProps {
   center: LatLng;
   zoom?: number;
   /** Current live position, e.g. the rider or the person being tracked. */
   marker?: LatLng;
+  /** Multiple labeled pins, e.g. Safety Circle members. */
+  markers?: MapMarker[];
   /** Expected route, used to detect deviation in Ride Mode. */
   expectedPath?: LatLng[];
   /** Actual traveled path so far. */
@@ -50,6 +58,7 @@ export function GoogleMapView({
   center,
   zoom = 15,
   marker,
+  markers,
   expectedPath,
   actualPath,
   className = "h-full w-full",
@@ -101,6 +110,13 @@ export function GoogleMapView({
         />
       )}
       {marker && <MarkerF position={marker} />}
+      {markers?.map((m, i) => (
+        <MarkerF
+          key={i}
+          position={m.position}
+          label={m.label ? { text: m.label, color: "#fff", fontWeight: "bold" } : undefined}
+        />
+      ))}
     </GoogleMap>
   );
 }
