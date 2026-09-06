@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { Menu, Shield, Users, Star, Heart, Car, ShoppingBag, GraduationCap } from "lucide-react";
+import { useMenuDrawer } from "@/components/layout/MenuDrawerContext";
 
 // Faithful port of reference/tether-app-demo.html #screen-home (~line 305).
 // Light theme is intentional here — it's the one screen in the demo that
@@ -7,12 +8,16 @@ import { Menu, Shield, Users, Star, Heart, Car, ShoppingBag, GraduationCap } fro
 // premium, vault, guardian) switch to dark. See CLAUDE.md > Screen Inventory.
 export default function Home() {
   const navigate = useNavigate();
+  const { openMenu } = useMenuDrawer();
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <header className="sticky top-0 z-20 border-b border-slate-100 bg-white p-6 pb-6 pt-8 shadow-sm">
         <div className="mb-4 flex items-center justify-between">
-          <button className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 transition hover:bg-slate-200">
+          <button
+            onClick={openMenu}
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 transition hover:bg-slate-200"
+          >
             <Menu className="h-5 w-5 text-slate-900" />
           </button>
           <div className="relative">
