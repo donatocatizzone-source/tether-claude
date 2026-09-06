@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Menu, X } from "lucide-react";
+import { Menu, X, FlaskConical } from "lucide-react";
 import { OverwatchSidebar } from "@/components/overwatch/OverwatchSidebar";
 import { StatusBoard } from "@/components/overwatch/StatusBoard";
 import { AlertsMap } from "@/components/overwatch/AlertsMap";
@@ -17,6 +17,7 @@ import { PropertyDetailView } from "@/components/overwatch/PropertyDetailView";
 import { ScheduleView } from "@/components/overwatch/ScheduleView";
 import { type Employee, dummyEmployees, type Incident as DummyIncident, dummyIncidents, type LocalIncident } from "@/components/overwatch/dummyData";
 import { supabase } from "@/lib/supabase";
+import { env } from "@/lib/env";
 import { useAuth } from "@/contexts/AuthContext";
 
 // Port of OLD/src/components/tether/overwatch/OverwatchDashboard.tsx (see
@@ -40,8 +41,12 @@ export function OverwatchDashboard() {
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
   const [localIncidents, setLocalIncidents] = useState<LocalIncident[]>([]);
-  const [employees, setEmployees] = useState<Employee[]>(dummyEmployees);
-  const [feedIncidents, setFeedIncidents] = useState<DummyIncident[]>(dummyIncidents);
+  // Fabricated rows only when explicitly asked for — see env.demoSeed. One of
+  // them reports an `emergency`, which becomes a critical incident in the live
+  // feed, so the default has to be an honest (possibly empty) console rather
+  // than one salted with invented distress alerts.
+  const [employees, setEmployees] = useState<Employee[]>(env.demoSeed ? dummyEmployees : []);
+  const [feedIncidents, setFeedIncidents] = useState<DummyIncident[]>(env.demoSeed ? dummyIncidents : []);
   const [realAgents, setRealAgents] = useState<RealAgent[]>([]);
 
   const fetchRealAgents = async () => {
@@ -246,6 +251,20 @@ export function OverwatchDashboard() {
       </div>
 
       <main className="flex-1 overflow-auto p-4 pt-16 md:p-6 md:pt-6">
+        {/* Persistent, not dismissible: if invented people and a fabricated
+            distress alert are on screen, that must be visible at all times,
+            not just on the view where they were first noticed. */}
+        {env.demoSeed && (
+          <div className="mb-4 flex items-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-2.5">
+            <FlaskConical size={16} className="shrink-0 text-amber-500" />
+            <p className="text-xs text-foreground">
+              <strong>Demo data is on.</strong> Team members prefixed "[Demo]" are fabricated, including one
+              showing a distress alert. Unset <code className="font-mono">VITE_DEMO_SEED</code> to see only real
+              data.
+            </p>
+          </div>
+        )}
+
         {activeView === "dashboard" && (
           <div className="space-y-6">
             <div>

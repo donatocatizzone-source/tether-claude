@@ -26,4 +26,16 @@ export const env = {
   googleMapsApiKey: requireEnv("VITE_GOOGLE_MAPS_API_KEY"),
   supabaseUrl: requireEnv("VITE_SUPABASE_URL"),
   supabaseAnonKey: requireEnv("VITE_SUPABASE_ANON_KEY"),
+
+  /**
+   * Mixes fabricated team members into the Overwatch console so it isn't
+   * empty in a demo. Set VITE_DEMO_SEED=true in .env.local to enable.
+   *
+   * Off by default, deliberately. One of those seed rows carries an
+   * `emergency` status, which the dashboard turns into a critical incident
+   * in the live feed. In a safety product a manager cannot be left guessing
+   * whether a distress alert is real — an empty console is honest, a console
+   * with invented emergencies in it is not.
+   */
+  demoSeed: import.meta.env.VITE_DEMO_SEED === "true",
 };
