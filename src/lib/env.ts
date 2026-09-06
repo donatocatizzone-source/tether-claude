@@ -55,4 +55,21 @@ export const env = {
    * with invented emergencies in it is not.
    */
   demoSeed: import.meta.env.VITE_DEMO_SEED === "true",
+
+  /**
+   * Whether the workspace switcher and /business/* routes enforce the user's
+   * real organisation and role.
+   *
+   * OFF for now, deliberately: the product is being demoed, and every
+   * workspace needs to be reachable without first provisioning an org.
+   * Set VITE_ENFORCE_WORKSPACE_ROLES=true for production.
+   *
+   * Unlike VITE_DEMO_SEED this needs no warning banner, because it changes
+   * only what is OFFERED, never what is readable. RLS is the actual
+   * enforcement: an org-less user who walks into the console still sees an
+   * empty one, because every org-scoped policy resolves through
+   * get_user_org_id() server-side. Turning this on adds an explanation for
+   * why a workspace is unavailable; turning it off does not grant data.
+   */
+  enforceWorkspaceRoles: import.meta.env.VITE_ENFORCE_WORKSPACE_ROLES === "true",
 };

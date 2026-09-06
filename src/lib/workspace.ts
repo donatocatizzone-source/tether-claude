@@ -7,6 +7,15 @@ export interface WorkspaceAccess {
   isManager: boolean;
   /** True while the profile/roles query is still in flight. */
   loading: boolean;
+  /**
+   * Whether org/role requirements are applied at all.
+   *
+   * False while demoing, so every workspace is reachable without first
+   * provisioning an organisation. This gates the UI only — RLS still governs
+   * every row, so an org-less user reaching the console finds it empty rather
+   * than populated with someone else's data.
+   */
+  enforceRoles: boolean;
 }
 
 export interface ResolvedWorkspace {
@@ -30,6 +39,8 @@ export function isWorkspaceMode(value: unknown): value is WorkspaceMode {
 /** Whether `mode` is permitted given the user's org membership and role. */
 export function canAccessMode(mode: WorkspaceMode, access: WorkspaceAccess): boolean {
   if (mode === "consumer") return true;
+  // Demo mode: every workspace is offered. RLS still decides what's in them.
+  if (!access.enforceRoles) return true;
   // While loading we know nothing; callers must not act on a `false` here.
   if (access.loading) return false;
   if (mode === "member") return access.hasOrganization;
@@ -44,6 +55,10 @@ export function canAccessMode(mode: WorkspaceMode, access: WorkspaceAccess): boo
 export function resolveWorkspaceMode(stored: unknown, access: WorkspaceAccess): ResolvedWorkspace {
   const requested: WorkspaceMode = isWorkspaceMode(stored) ? stored : "consumer";
 
+  // Nothing to reconcile when gating is off — the stored choice always stands,
+  // including through the loading frame.
+  if (!access.enforceRoles) return { mode: requested, persist: true };
+
   // Hold the user's stored choice until we actually know their access.
   // Rendering `consumer` here is fine; writing it down is not.
   if (access.loading) return { mode: requested, persist: false };
@@ -56,6 +71,7 @@ export function resolveWorkspaceMode(stored: unknown, access: WorkspaceAccess): 
 
 /** Why a workspace is unavailable, for the switcher to explain itself. */
 export function workspaceLockReason(mode: WorkspaceMode, access: WorkspaceAccess): string | null {
+  if (!access.enforceRoles) return null;
   if (canAccessMode(mode, access) || access.loading) return null;
   if (!access.hasOrganization) return "Join or create a brokerage to unlock";
   if (mode === "admin") return "Requires a manager or admin role";
