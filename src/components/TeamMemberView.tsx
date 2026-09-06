@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import {
   MapPin, Shield, Phone, User, Save, Play, Square, Loader2,
   ShieldAlert, CheckCircle2, AlertTriangle, Clock, Home, Plus, Timer,
-  Briefcase, FileText, ChevronDown, ChevronUp, Pencil,
+  Briefcase, FileText, ChevronDown, ChevronUp, Pencil, Radio, CircleDashed,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
@@ -313,7 +313,13 @@ export function TeamMemberView() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-lg px-4 pb-28">
+    // Was locked to max-w-lg (512px) — a phone-shaped column stranded in the
+    // middle of a desktop monitor, on the screen an agent actually works from.
+    // Two columns at lg: the live session and what's next on the left, the map
+    // and reference material in a right rail.
+    <div className="mx-auto w-full max-w-lg px-4 pb-28 lg:grid lg:max-w-6xl lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start lg:gap-6 lg:px-6">
+      {/* Main column: who you are, what's running, what's next. */}
+      <div className="min-w-0">
       <button onClick={() => setProfileOpen(!profileOpen)} className="mt-5 mb-5 flex w-full items-center justify-between text-left">
         <div>
           <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
@@ -531,17 +537,32 @@ export function TeamMemberView() {
         </div>
       )}
 
+      </div>
+
+      {/* Right rail: reference material, not the thing you act on. */}
+      <div className="min-w-0 lg:sticky lg:top-4">
       <div className="mb-5">
         <h3 className="mb-3 text-sm font-bold uppercase tracking-wider text-muted-foreground">My Location</h3>
         <GoogleMapView
           center={currentLocation || { lat: 30.2672, lng: -97.7431 }}
           zoom={15}
           markers={currentLocation ? [{ position: currentLocation, color: "blue" }] : []}
-          className="h-48 w-full rounded-2xl overflow-hidden"
+          className="h-48 w-full overflow-hidden rounded-md"
         />
         <div className="mt-2">
-          <span className="rounded-full border border-border bg-background/80 px-2.5 py-1 text-[10px] font-medium text-foreground">
-            {activeSessionId ? "🟢 Tracking" : "⚪ Off duty"}
+          {/* Was an emoji: "🟢 Tracking" / "⚪ Off duty". Emoji render
+              differently per platform and are announced unhelpfully by screen
+              readers — not what you want on a live safety indicator. */}
+          <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background/80 px-2 py-1 text-[11px] font-medium text-foreground">
+            {activeSessionId ? (
+              <>
+                <Radio size={11} className="text-mode-safe" /> Tracking
+              </>
+            ) : (
+              <>
+                <CircleDashed size={11} className="text-muted-foreground" /> Off duty
+              </>
+            )}
           </span>
         </div>
       </div>
@@ -553,6 +574,7 @@ export function TeamMemberView() {
         hasActiveSession={!!activeSessionId}
         onSessionStarted={handleSessionStarted}
       />
+      </div>
 
       <PinPadModal open={pinOpen} onOpenChange={setPinOpen} onVerify={handleEndSession} />
     </div>
