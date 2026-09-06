@@ -1,13 +1,96 @@
-import { ScreenStub } from "@/components/layout/ScreenStub";
+import { useNavigate } from "react-router-dom";
+import { ArrowLeft, Star, Heart, ShoppingBag, Car } from "lucide-react";
 
-// Port target: reference/tether-app-demo.html #screen-vouch (~line 596).
+// Port of reference/tether-app-demo.html #screen-vouch (~line 596).
+// Ring geometry (r=54, dasharray=339, dashoffset=10) copied literally from
+// the reference SVG rather than re-derived, to stay pixel-accurate.
+const BADGES = [
+  {
+    icon: Heart,
+    iconClass: "bg-pink-100 text-pink-500",
+    title: "Verified Date",
+    desc: "Safety check completed with Sarah",
+    points: "+5",
+  },
+  {
+    icon: ShoppingBag,
+    iconClass: "bg-sky-100 text-sky-500",
+    title: "Safe Transaction",
+    desc: "Marketplace meet with Mike",
+    points: "+5",
+  },
+  {
+    icon: Car,
+    iconClass: "bg-indigo-100 text-indigo-500",
+    title: "Verified Trip",
+    desc: "Completed route #8821",
+    points: "+2",
+  },
+];
+
 export default function Vouch() {
+  const navigate = useNavigate();
+
   return (
-    <ScreenStub
-      eyebrow="Trust"
-      title="Vouch score"
-      description="Circular 98/100 score ring plus a recent-badges activity list."
-      specRef="reference/tether-app-demo.html #screen-vouch"
-    />
+    <div className="min-h-screen bg-slate-50">
+      <div className="relative flex h-full flex-col p-6 pt-12">
+        <div className="sticky top-0 z-10 mb-8 flex items-center gap-3 bg-slate-50 py-2">
+          <button
+            onClick={() => navigate("/")}
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-100 bg-white shadow-sm transition active:scale-95"
+          >
+            <ArrowLeft className="h-5 w-5 text-slate-700" />
+          </button>
+          <div>
+            <h2 className="text-xl font-bold text-slate-900">Trust Score</h2>
+            <p className="text-xs text-slate-500">Vouched by Community</p>
+          </div>
+        </div>
+
+        <div className="mb-8 flex flex-col items-center rounded-3xl border border-slate-100 bg-white p-8 shadow-sm">
+          <div className="relative mb-4 flex h-32 w-32 items-center justify-center rounded-full border-[8px] border-yellow-100">
+            <Star className="absolute h-12 w-12 fill-current text-yellow-400" />
+            <svg className="absolute inset-0 h-full w-full -rotate-90 transform">
+              <circle
+                cx="60"
+                cy="60"
+                r="54"
+                stroke="#fde047"
+                strokeWidth="8"
+                fill="none"
+                strokeDasharray="339"
+                strokeDashoffset="10"
+                strokeLinecap="round"
+              />
+            </svg>
+          </div>
+          <h3 className="text-4xl font-black text-slate-900">
+            98<span className="text-lg font-medium text-slate-400">/100</span>
+          </h3>
+          <p className="mt-2 rounded-full bg-yellow-50 px-3 py-1 text-xs font-bold text-yellow-700">
+            High Trust Level
+          </p>
+        </div>
+
+        <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">Recent Badges</h3>
+        <div className="space-y-3 pb-24">
+          {BADGES.map((b) => (
+            <div
+              key={b.title}
+              className="flex items-center gap-4 rounded-2xl border border-slate-100 bg-white p-4"
+            >
+              <div className={`flex h-10 w-10 items-center justify-center rounded-full ${b.iconClass}`}>
+                <b.icon className="h-5 w-5" />
+              </div>
+              <div className="flex-1">
+                <h4 className="text-sm font-bold text-slate-900">{b.title}</h4>
+                <p className="text-xs text-slate-500">{b.desc}</p>
+              </div>
+              <span className="text-xs font-bold text-green-500">{b.points}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }
