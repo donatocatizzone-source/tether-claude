@@ -4,6 +4,7 @@ import { Home, Clock, Users, Settings, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MenuDrawerProvider } from "@/components/layout/MenuDrawerContext";
 import { MenuDrawer } from "@/components/layout/MenuDrawer";
+import { WorkspaceProvider } from "@/components/layout/WorkspaceContext";
 
 // Port of reference/tether-app-demo.html #bottom-nav (~line 279): four nav
 // buttons plus a floating center shield button that opens Active Timer.
@@ -18,28 +19,30 @@ export function AppShell({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
 
   return (
-    <MenuDrawerProvider>
-      <div className="min-h-screen w-full bg-background pb-24">
-        {children}
+    <WorkspaceProvider>
+      <MenuDrawerProvider>
+        <div className="min-h-screen w-full bg-background pb-24">
+          {children}
 
-        <MenuDrawer />
+          <MenuDrawer />
 
-        <nav className="fixed inset-x-0 bottom-0 z-40 mx-auto flex h-24 max-w-md items-start justify-around rounded-t-[40px] border-t border-slate-100 bg-white px-2 pt-4">
-          <NavItem {...NAV_ITEMS[0]} />
-          <NavItem {...NAV_ITEMS[1]} />
-          <div className="w-16" /> {/* spacer for the floating button */}
-          <NavItem {...NAV_ITEMS[2]} />
-          <NavItem {...NAV_ITEMS[3]} />
+          <nav className="fixed inset-x-0 bottom-0 z-40 mx-auto flex h-24 max-w-md items-start justify-around rounded-t-[40px] border-t border-slate-100 bg-white px-2 pt-4">
+            <NavItem {...NAV_ITEMS[0]} />
+            <NavItem {...NAV_ITEMS[1]} />
+            <div className="w-16" /> {/* spacer for the floating button */}
+            <NavItem {...NAV_ITEMS[2]} />
+            <NavItem {...NAV_ITEMS[3]} />
 
-          <button
-            onClick={() => navigate("/active-timer")}
-            className="absolute -top-8 left-1/2 flex h-16 w-16 -translate-x-1/2 transform items-center justify-center rounded-full border-4 border-slate-50 bg-slate-900 shadow-2xl transition hover:scale-110 active:scale-95"
-          >
-            <Shield className="h-7 w-7 text-white" />
-          </button>
-        </nav>
-      </div>
-    </MenuDrawerProvider>
+            <button
+              onClick={() => navigate("/active-timer")}
+              className="absolute -top-8 left-1/2 flex h-16 w-16 -translate-x-1/2 transform items-center justify-center rounded-full border-4 border-slate-50 bg-slate-900 shadow-2xl transition hover:scale-110 active:scale-95"
+            >
+              <Shield className="h-7 w-7 text-white" />
+            </button>
+          </nav>
+        </div>
+      </MenuDrawerProvider>
+    </WorkspaceProvider>
   );
 }
 

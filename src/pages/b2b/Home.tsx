@@ -1,29 +1,35 @@
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Home as HomeIcon, Key, Users, ScanFace } from "lucide-react";
+import { Home as HomeIcon, Key, Users, ScanFace, Menu } from "lucide-react";
+import { useMenuDrawer } from "@/components/layout/MenuDrawerContext";
+import { WorkspaceToggle } from "@/components/layout/WorkspaceToggle";
 
 // Port of reference/tether-app-demo.html #screen-b2b-home (~line 410).
 export default function B2BHome() {
   const navigate = useNavigate();
+  const { openMenu } = useMenuDrawer();
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-900 p-6 pt-16 text-white">
       <div className="mb-6 flex items-center justify-between">
-        <div>
-          <div className="mb-1 flex items-center gap-2">
-            <div className="flex h-6 w-6 items-center justify-center rounded-md bg-yellow-500 text-xs font-bold text-slate-900">
-              P
+        <div className="flex items-center gap-3">
+          <button
+            onClick={openMenu}
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-800 transition hover:bg-slate-700"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+          <div>
+            <div className="mb-1 flex items-center gap-2">
+              <div className="flex h-6 w-6 items-center justify-center rounded-md bg-yellow-500 text-xs font-bold text-slate-900">
+                P
+              </div>
+              <span className="text-xs font-bold uppercase tracking-widest text-yellow-500">Professional</span>
             </div>
-            <span className="text-xs font-bold uppercase tracking-widest text-yellow-500">Professional</span>
+            <h2 className="text-2xl font-bold">Agent Dashboard</h2>
           </div>
-          <h2 className="text-2xl font-bold">Agent Dashboard</h2>
         </div>
-        <button
-          onClick={() => navigate("/")}
-          className="rounded-lg border border-slate-600 px-3 py-1.5 text-xs text-slate-400 transition hover:border-white hover:text-white"
-        >
-          Exit Pro
-        </button>
+        <WorkspaceToggle variant="dark" />
       </div>
 
       <div className="relative mb-6 overflow-hidden rounded-3xl border border-slate-700 bg-slate-800 p-6 shadow-xl">

@@ -2,8 +2,6 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
   X,
-  Briefcase,
-  ArrowRight,
   PhoneCall,
   ChevronRight,
   Users,
@@ -14,12 +12,17 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useMenuDrawer } from "@/components/layout/MenuDrawerContext";
+import { WorkspaceToggle } from "@/components/layout/WorkspaceToggle";
 
-// Port of reference/tether-app-demo.html #menu-drawer (~line 204). The
-// original's openPaySheet() calls (Billing & Plans, Upgrade to Premium)
-// point at the payment sheet, which CLAUDE.md documents as separately
-// not-yet-ported app chrome — those show a placeholder toast here rather
-// than silently growing this change into building that sheet too.
+// Port of reference/tether-app-demo.html #menu-drawer (~line 204), with
+// one deliberate deviation: the original's one-way "Switch to Professional"
+// button is replaced by the shared WorkspaceToggle (see CLAUDE.md's
+// workspace toggle section) so switching is bidirectional and consistent
+// with Home/b2b-Home. The original's openPaySheet() calls (Billing &
+// Plans, Upgrade to Premium) point at the payment sheet, which CLAUDE.md
+// documents as separately not-yet-ported app chrome — those show a
+// placeholder toast here rather than silently growing this change into
+// building that sheet too.
 export function MenuDrawer() {
   const { isOpen, closeMenu } = useMenuDrawer();
   const navigate = useNavigate();
@@ -52,19 +55,10 @@ export function MenuDrawer() {
         </div>
 
         <div className="flex-1 space-y-2 overflow-y-auto p-6">
-          <button
-            onClick={() => go("/b2b")}
-            className="mb-6 flex w-full transform items-center gap-4 rounded-xl bg-gradient-to-r from-amber-200 to-yellow-500 p-4 text-slate-900 shadow-lg transition hover:scale-[1.02]"
-          >
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/30">
-              <Briefcase className="h-5 w-5 text-slate-900" />
-            </div>
-            <div className="text-left">
-              <div className="text-sm font-bold">Switch to Professional</div>
-              <div className="text-xs text-slate-800/80">For Realtors &amp; Agents</div>
-            </div>
-            <ArrowRight className="ml-auto h-4 w-4" />
-          </button>
+          <div className="mb-6">
+            <div className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-500">Workspace</div>
+            <WorkspaceToggle variant="dark" fullWidth onSelect={closeMenu} />
+          </div>
 
           <div className="mb-2 mt-2 text-xs font-bold uppercase tracking-wider text-slate-500">
             Premium Features

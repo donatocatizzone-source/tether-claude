@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Menu, Shield, Users, Star, Heart, Car, ShoppingBag, GraduationCap } from "lucide-react";
 import { useMenuDrawer } from "@/components/layout/MenuDrawerContext";
+import { WorkspaceToggle } from "@/components/layout/WorkspaceToggle";
 
 // Faithful port of reference/tether-app-demo.html #screen-home (~line 305).
 // Light theme is intentional here — it's the one screen in the demo that
@@ -13,14 +14,17 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <header className="sticky top-0 z-20 border-b border-slate-100 bg-white p-6 pb-6 pt-8 shadow-sm">
-        <div className="mb-4 flex items-center justify-between">
+        <div className="mb-4 grid grid-cols-3 items-center">
           <button
             onClick={openMenu}
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 transition hover:bg-slate-200"
+            className="flex h-10 w-10 items-center justify-center justify-self-start rounded-full bg-slate-100 transition hover:bg-slate-200"
           >
             <Menu className="h-5 w-5 text-slate-900" />
           </button>
-          <div className="relative">
+          <div className="justify-self-center">
+            <WorkspaceToggle variant="light" />
+          </div>
+          <div className="relative justify-self-end">
             <div className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-white bg-blue-100 text-2xl shadow">
               👨🏻
             </div>
