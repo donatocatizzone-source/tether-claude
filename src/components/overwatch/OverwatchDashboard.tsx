@@ -12,6 +12,9 @@ import { AuditLog } from "@/components/overwatch/AuditLog";
 import { InvitationsView } from "@/components/overwatch/InvitationsView";
 import { OverwatchAnalytics } from "@/components/overwatch/OverwatchAnalytics";
 import { EmployeeDetailView } from "@/components/overwatch/EmployeeDetailView";
+import { PropertiesView } from "@/components/overwatch/PropertiesView";
+import { PropertyDetailView } from "@/components/overwatch/PropertyDetailView";
+import { ScheduleView } from "@/components/overwatch/ScheduleView";
 import { type Employee, dummyEmployees, type Incident as DummyIncident, dummyIncidents, type LocalIncident } from "@/components/overwatch/dummyData";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
@@ -35,6 +38,7 @@ export function OverwatchDashboard() {
   const [activeView, setActiveView] = useState("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
   const [localIncidents, setLocalIncidents] = useState<LocalIncident[]>([]);
   const [employees, setEmployees] = useState<Employee[]>(dummyEmployees);
   const [feedIncidents, setFeedIncidents] = useState<DummyIncident[]>(dummyIncidents);
@@ -135,6 +139,7 @@ export function OverwatchDashboard() {
     setActiveView(view);
     setSidebarOpen(false);
     setSelectedEmployee(null);
+    setSelectedPropertyId(null);
   };
 
   const handleIncidentCreated = (incident: LocalIncident) => {
@@ -156,8 +161,18 @@ export function OverwatchDashboard() {
     );
   };
 
-  const handleClearAlert = async (employeeName: string) => {
-    const agent = realAgents.find((a) => a.name === employeeName);
+  // Real agents are merged in with id `real-<userId>`, so the id identifies
+  // them exactly. These handlers used to match on display name, which meant
+  // two people called "Chris" acted on each other's sessions, and a real
+  // agent sharing a name with a seed row hit the database when they
+  // shouldn't have.
+  const realUserId = (employee: Employee): string | null =>
+    employee.id.startsWith("real-") ? employee.id.slice("real-".length) : null;
+
+  const handleClearAlert = async (employee: Employee) => {
+    const employeeName = employee.name;
+    const userId = realUserId(employee);
+    const agent = userId ? realAgents.find((a) => a.userId === userId) : undefined;
     if (agent) {
       await supabase
         .from("professional_sessions")
@@ -176,15 +191,16 @@ export function OverwatchDashboard() {
       }
     }
 
-    setEmployees((prev) => prev.map((emp) => (emp.name === employeeName ? { ...emp, status: "idle" as const, lastCheckIn: "Just now" } : emp)));
+    setEmployees((prev) => prev.map((emp) => (emp.id === employee.id ? { ...emp, status: "idle" as const, lastCheckIn: "Just now" } : emp)));
     setLocalIncidents((prev) =>
       prev.map((li) => (li.employee_name === employeeName && li.status !== "resolved" ? { ...li, status: "resolved" as const } : li)),
     );
-    setSelectedEmployee((prev) => (prev && prev.name === employeeName ? { ...prev, status: "idle" as const, lastCheckIn: "Just now" } : prev));
+    setSelectedEmployee((prev) => (prev && prev.id === employee.id ? { ...prev, status: "idle" as const, lastCheckIn: "Just now" } : prev));
   };
 
-  const handleSetActive = async (employeeName: string) => {
-    const agent = realAgents.find((a) => a.name === employeeName);
+  const handleSetActive = async (employee: Employee) => {
+    const userId = realUserId(employee);
+    const agent = userId ? realAgents.find((a) => a.userId === userId) : undefined;
     if (agent) {
       const { data: profile } = await supabase.from("profiles").select("organization_id").eq("user_id", agent.userId).single();
 
@@ -198,8 +214,8 @@ export function OverwatchDashboard() {
       });
     }
 
-    setEmployees((prev) => prev.map((emp) => (emp.name === employeeName ? { ...emp, status: "active" as const, lastCheckIn: "Just now" } : emp)));
-    setSelectedEmployee((prev) => (prev && prev.name === employeeName ? { ...prev, status: "active" as const, lastCheckIn: "Just now" } : prev));
+    setEmployees((prev) => prev.map((emp) => (emp.id === employee.id ? { ...emp, status: "active" as const, lastCheckIn: "Just now" } : emp)));
+    setSelectedEmployee((prev) => (prev && prev.id === employee.id ? { ...prev, status: "active" as const, lastCheckIn: "Just now" } : prev));
   };
 
   const handleAddEmployee = (emp: Employee) => {
@@ -247,6 +263,13 @@ export function OverwatchDashboard() {
             <IncidentFeed incidents={feedIncidents} />
           </div>
         )}
+        {activeView === "properties" && !selectedPropertyId && (
+          <PropertiesView onSelect={setSelectedPropertyId} />
+        )}
+        {activeView === "properties" && selectedPropertyId && (
+          <PropertyDetailView propertyId={selectedPropertyId} onBack={() => setSelectedPropertyId(null)} />
+        )}
+        {activeView === "schedule" && <ScheduleView />}
         {activeView === "incidents" && <AlertStream localIncidents={localIncidents} onUpdateLocal={setLocalIncidents} />}
         {activeView === "audit-log" && <AuditLog />}
         {activeView === "pro-guard" && (

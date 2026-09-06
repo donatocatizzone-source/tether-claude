@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, Shield, LogOut, Radio, Briefcase, AlertTriangle, FileText, Mail, BarChart3 } from "lucide-react";
+import { LayoutDashboard, Users, Shield, LogOut, Radio, Briefcase, AlertTriangle, FileText, Mail, BarChart3, Building2, CalendarDays } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 // Port of OLD/src/components/tether/overwatch/OverwatchSidebar.tsx (see
@@ -10,6 +10,8 @@ interface OverwatchSidebarProps {
 
 const navItems = [
   { id: "dashboard", label: "Dashboard", Icon: LayoutDashboard },
+  { id: "properties", label: "Properties", Icon: Building2 },
+  { id: "schedule", label: "Schedule", Icon: CalendarDays },
   { id: "incidents", label: "Incidents", Icon: AlertTriangle },
   { id: "audit-log", label: "Audit Log", Icon: FileText },
   { id: "pro-guard", label: "Pro Guard", Icon: Briefcase },
