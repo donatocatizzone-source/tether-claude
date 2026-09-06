@@ -32,17 +32,31 @@ export function OverwatchAnalytics() {
   const { user } = useAuth();
   const [incidents, setIncidents] = useState<IncidentRow[]>([]);
   const [sessions, setSessions] = useState<SessionRow[]>([]);
+  const [names, setNames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
-      if (!user) return;
-      const [incRes, sessRes] = await Promise.all([
+      // Was `if (!user) return;`, which left the spinner up indefinitely
+      // instead of resolving to an empty state.
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+      const [incRes, sessRes, profileRes] = await Promise.all([
         supabase.from("incidents").select("id, severity, status, created_at, acknowledged_at, resolved_at"),
         supabase.from("professional_sessions").select("id, status, start_time, expected_end_time, user_id"),
+        supabase.from("profiles").select("user_id, full_name"),
       ]);
       setIncidents((incRes.data as IncidentRow[]) || []);
       setSessions((sessRes.data as SessionRow[]) || []);
+      setNames(
+        Object.fromEntries(
+          (profileRes.data ?? [])
+            .filter((p) => p.full_name)
+            .map((p) => [p.user_id, p.full_name as string]),
+        ),
+      );
       setLoading(false);
     })();
   }, [user]);
@@ -83,6 +97,9 @@ export function OverwatchAnalytics() {
     return Math.round(total / resolved.length / 60000);
   }, [incidents]);
 
+  // Previously labelled these "Member 1..5" — the user_id was discarded and
+  // replaced with an index — purely because no profiles join was done. A chart
+  // a manager can't map to a person is not worth showing, so it joins now.
   const teamActivity = useMemo(() => {
     const counts: Record<string, number> = {};
     sessions.forEach((s) => {
@@ -91,8 +108,8 @@ export function OverwatchAnalytics() {
     return Object.entries(counts)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5)
-      .map(([, count], i) => ({ name: `Member ${i + 1}`, sessions: count }));
-  }, [sessions]);
+      .map(([userId, count]) => ({ name: names[userId] ?? "Unknown member", sessions: count }));
+  }, [sessions, names]);
 
   const totalIncidents = incidents.length;
   const openIncidents = incidents.filter((i) => i.status !== "resolved").length;

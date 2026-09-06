@@ -10,7 +10,7 @@ import { ProGuardView } from "@/components/pro/ProGuardView";
 import { AlertStream } from "@/components/overwatch/AlertStream";
 import { AuditLog } from "@/components/overwatch/AuditLog";
 import { InvitationsView } from "@/components/overwatch/InvitationsView";
-import { OverwatchAnalytics } from "@/components/overwatch/OverwatchAnalytics";
+import { AnalyticsView } from "@/components/overwatch/AnalyticsView";
 import { EmployeeDetailView } from "@/components/overwatch/EmployeeDetailView";
 import { PropertiesView } from "@/components/overwatch/PropertiesView";
 import { PropertyDetailView } from "@/components/overwatch/PropertyDetailView";
@@ -278,7 +278,7 @@ export function OverwatchDashboard() {
           </div>
         )}
         {activeView === "invitations" && <InvitationsView />}
-        {activeView === "analytics" && <OverwatchAnalytics />}
+        {activeView === "analytics" && <AnalyticsView />}
         {activeView === "live" && <OverwatchLive employees={mergedEmployees} />}
         {activeView === "team" && !selectedEmployee && (
           <TeamTable employees={mergedEmployees} onSelectEmployee={(emp) => setSelectedEmployee(emp)} onAddEmployee={handleAddEmployee} onRemoveEmployee={handleRemoveEmployee} />
