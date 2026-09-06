@@ -1437,3 +1437,96 @@ grant update (
   updated_at
 ) on public.profiles to authenticated;
 
+
+
+-- =====================================================================
+-- PROFILE BACKFILL + SAFE create_organization()
+-- (mirrors supabase/migrations/0003_backfill_profiles.sql)
+-- =====================================================================
+-- Supersedes the create_organization() defined above. See that migration for
+-- why: the original only UPDATEd public.profiles, so an account with no
+-- profile row got an organisation it was never attached to, with no error.
+
+
+-- ---------------------------------------------------------------------
+-- 1. Backfill
+-- ---------------------------------------------------------------------
+insert into public.profiles (user_id, full_name)
+select u.id, coalesce(u.raw_user_meta_data ->> 'full_name', '')
+from auth.users u
+where not exists (select 1 from public.profiles p where p.user_id = u.id);
+
+-- Everyone should hold at least the base role, same as handle_new_user_role().
+insert into public.user_roles (user_id, role)
+select u.id, 'user'
+from auth.users u
+where not exists (select 1 from public.user_roles r where r.user_id = u.id)
+on conflict (user_id, role) do nothing;
+
+-- ---------------------------------------------------------------------
+-- 2 + 3. create_organization(), no longer assuming the profile exists
+-- ---------------------------------------------------------------------
+create or replace function public.create_organization(_name text, _job_title text default '')
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  _uid uuid := auth.uid();
+  _clean_name text := btrim(coalesce(_name, ''));
+  _existing uuid;
+  _org_id uuid;
+  _rows int;
+begin
+  if _uid is null then
+    raise exception 'Not signed in';
+  end if;
+
+  if length(_clean_name) < 2 then
+    raise exception 'Organisation name must be at least 2 characters';
+  end if;
+
+  -- One org per user: get_user_org_id() returns a single uuid and the whole
+  -- RLS model is built on that. Fail loudly rather than silently moving
+  -- someone out of a brokerage they already belong to.
+  select organization_id into _existing from public.profiles where user_id = _uid;
+  if _existing is not null then
+    raise exception 'You already belong to an organisation';
+  end if;
+
+  insert into public.organizations (name, subscription_tier)
+  values (_clean_name, 'free')
+  returning id into _org_id;
+
+  -- Insert-or-update. The previous version only updated, so an account whose
+  -- profile predated the handle_new_user() trigger got an organisation it was
+  -- never actually attached to.
+  insert into public.profiles (user_id, organization_id, job_title)
+  values (_uid, _org_id, coalesce(nullif(btrim(_job_title), ''), ''))
+  on conflict (user_id) do update
+    set organization_id = excluded.organization_id,
+        job_title = coalesce(nullif(excluded.job_title, ''), public.profiles.job_title);
+
+  -- Belt and braces: if the write somehow still matched nothing, abort the
+  -- whole transaction rather than hand back an org id that leads nowhere.
+  select count(*) into _rows
+  from public.profiles
+  where user_id = _uid and organization_id = _org_id;
+
+  if _rows = 0 then
+    raise exception 'Failed to attach profile to the new organisation';
+  end if;
+
+  insert into public.user_roles (user_id, role) values (_uid, 'admin')
+    on conflict (user_id, role) do nothing;
+  insert into public.user_roles (user_id, role) values (_uid, 'manager')
+    on conflict (user_id, role) do nothing;
+
+  return _org_id;
+end;
+$$;
+
+revoke all on function public.create_organization(text, text) from public;
+grant execute on function public.create_organization(text, text) to authenticated;
+
