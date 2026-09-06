@@ -91,6 +91,7 @@ export default function AuthPage() {
               <Input
                 id="name"
                 type="text"
+                autoComplete="name"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="Your name"
@@ -106,6 +107,7 @@ export default function AuthPage() {
             <Input
               id="email"
               type="email"
+              autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
@@ -120,6 +122,7 @@ export default function AuthPage() {
             <Input
               id="password"
               type="password"
+              autoComplete={isLogin ? "current-password" : "new-password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
