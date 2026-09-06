@@ -6,6 +6,7 @@ import {
   type WorkspaceAccess,
   type WorkspaceMode,
 } from "@/lib/workspace";
+import { env } from "@/lib/env";
 
 // Port of OLD/src/contexts/WorkspaceContext.tsx (see CLAUDE.md > Ground
 // truth).
@@ -56,7 +57,12 @@ export function WorkspaceProvider({
   isManager?: boolean;
   loading?: boolean;
 }) {
-  const access: WorkspaceAccess = { hasOrganization, isManager, loading };
+  const access: WorkspaceAccess = {
+    hasOrganization,
+    isManager,
+    loading,
+    enforceRoles: env.enforceWorkspaceRoles,
+  };
 
   const [currentMode, setCurrentMode] = useState<WorkspaceMode>(() => {
     if (typeof window === "undefined") return "consumer";
@@ -66,6 +72,7 @@ export function WorkspaceProvider({
       hasOrganization,
       isManager,
       loading: true,
+      enforceRoles: env.enforceWorkspaceRoles,
     }).mode;
   });
 

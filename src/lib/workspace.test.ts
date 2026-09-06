@@ -7,10 +7,10 @@ import {
   type WorkspaceAccess,
 } from "@/lib/workspace";
 
-const LOADING: WorkspaceAccess = { hasOrganization: false, isManager: false, loading: true };
-const NO_ORG: WorkspaceAccess = { hasOrganization: false, isManager: false, loading: false };
-const MEMBER: WorkspaceAccess = { hasOrganization: true, isManager: false, loading: false };
-const MANAGER: WorkspaceAccess = { hasOrganization: true, isManager: true, loading: false };
+const LOADING: WorkspaceAccess = { hasOrganization: false, isManager: false, loading: true, enforceRoles: true };
+const NO_ORG: WorkspaceAccess = { hasOrganization: false, isManager: false, loading: false, enforceRoles: true };
+const MEMBER: WorkspaceAccess = { hasOrganization: true, isManager: false, loading: false, enforceRoles: true };
+const MANAGER: WorkspaceAccess = { hasOrganization: true, isManager: true, loading: false, enforceRoles: true };
 
 describe("resolveWorkspaceMode", () => {
   // The regression that shipped: on first paint the profile query is still in
@@ -73,7 +73,7 @@ describe("canAccessMode", () => {
     expect(canAccessMode("admin", MEMBER)).toBe(false);
     expect(canAccessMode("admin", MANAGER)).toBe(true);
     // A manager flag without an org is incoherent; deny rather than trust it.
-    expect(canAccessMode("admin", { hasOrganization: false, isManager: true, loading: false })).toBe(false);
+    expect(canAccessMode("admin", { hasOrganization: false, isManager: true, loading: false, enforceRoles: true })).toBe(false);
   });
 });
 
@@ -94,6 +94,48 @@ describe("workspaceLockReason", () => {
 
   it("says nothing while loading, rather than flashing a wrong reason", () => {
     expect(workspaceLockReason("admin", LOADING)).toBeNull();
+  });
+});
+
+// This is the configuration currently shipping (VITE_ENFORCE_WORKSPACE_ROLES
+// unset), so it deserves the same coverage as the enforced path. Every
+// workspace is offered; RLS still governs what's inside them.
+describe("demo mode — enforceRoles: false", () => {
+  const DEMO: WorkspaceAccess = {
+    hasOrganization: false,
+    isManager: false,
+    loading: false,
+    enforceRoles: false,
+  };
+  const DEMO_LOADING: WorkspaceAccess = { ...DEMO, loading: true };
+
+  it("offers every workspace to a user with no org and no roles", () => {
+    expect(canAccessMode("consumer", DEMO)).toBe(true);
+    expect(canAccessMode("member", DEMO)).toBe(true);
+    expect(canAccessMode("admin", DEMO)).toBe(true);
+  });
+
+  it("offers them during the loading frame too, so nothing flickers shut", () => {
+    expect(canAccessMode("admin", DEMO_LOADING)).toBe(true);
+  });
+
+  it("keeps a stored workspace instead of demoting it", () => {
+    expect(resolveWorkspaceMode("admin", DEMO)).toEqual({ mode: "admin", persist: true });
+    expect(resolveWorkspaceMode("member", DEMO)).toEqual({ mode: "member", persist: true });
+  });
+
+  it("holds the stored workspace through loading without demoting", () => {
+    // The refresh-demotion bug must stay fixed in this configuration as well.
+    expect(resolveWorkspaceMode("admin", DEMO_LOADING).mode).toBe("admin");
+  });
+
+  it("still rejects junk stored values", () => {
+    expect(resolveWorkspaceMode("overwatch", DEMO).mode).toBe("consumer");
+  });
+
+  it("shows no lock reason, since nothing is locked", () => {
+    expect(workspaceLockReason("admin", DEMO)).toBeNull();
+    expect(workspaceLockReason("member", DEMO)).toBeNull();
   });
 });
 

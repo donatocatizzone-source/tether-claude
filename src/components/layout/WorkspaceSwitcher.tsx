@@ -11,6 +11,7 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { canAccessMode, workspaceLockReason, type WorkspaceMode } from "@/lib/workspace";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { env } from "@/lib/env";
 
 // Port of OLD/src/components/tether/WorkspaceSwitcher.tsx (see CLAUDE.md >
 // Ground truth).
@@ -50,7 +51,7 @@ export function WorkspaceSwitcher() {
   const { currentMode, setMode, hasOrganization, isManager, loading } = useWorkspace();
   const navigate = useNavigate();
   const current = modeConfig[currentMode];
-  const access = { hasOrganization, isManager, loading };
+  const access = { hasOrganization, isManager, loading, enforceRoles: env.enforceWorkspaceRoles };
 
   function handleSelect(mode: WorkspaceMode) {
     if (!canAccessMode(mode, access)) return;
