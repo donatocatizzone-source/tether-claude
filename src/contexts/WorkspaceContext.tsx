@@ -29,12 +29,16 @@ const STORAGE_KEY = "tether-workspace-mode";
 
 export function WorkspaceProvider({
   children,
-  // TODO: derive from the signed-in user's profile (organization_id / role
-  // via has_role()) once auth + profile queries are wired up end-to-end —
-  // hardcoded true/true here matches OLD's own current state, not a
-  // deliberate permissiveness decision made in this rebuild.
-  hasOrganization = true,
-  isManager = true,
+  // These now come from the signed-in user's real profile + user_roles (see
+  // App.tsx, which passes useProfile()'s values). They previously defaulted
+  // to true/true with nothing passing them, so every workspace was offered to
+  // everyone. Defaults are false now: an unknown user gets the least access,
+  // not the most.
+  //
+  // These gate the UI only. RLS is what actually enforces access — see the
+  // org-scoped policies in supabase/schema.sql.
+  hasOrganization = false,
+  isManager = false,
 }: {
   children: ReactNode;
   hasOrganization?: boolean;
@@ -46,6 +50,15 @@ export function WorkspaceProvider({
     if (stored === "consumer" || stored === "member" || stored === "admin") return stored;
     return "consumer";
   });
+
+  // The mode is restored from localStorage before the profile has loaded, so
+  // a user who no longer has the role (or never did, on a shared machine)
+  // would otherwise stay parked in a workspace they can't use. Falling back
+  // here means the switcher and the route guard can't disagree.
+  useEffect(() => {
+    if (currentMode === "admin" && !isManager) setCurrentMode("consumer");
+    else if (currentMode === "member" && !hasOrganization) setCurrentMode("consumer");
+  }, [currentMode, hasOrganization, isManager]);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, currentMode);

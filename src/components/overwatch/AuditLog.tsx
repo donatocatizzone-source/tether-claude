@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/lib/supabase";
+import { downloadCsv } from "@/lib/csv";
 
 // Port of OLD/src/components/tether/overwatch/AuditLog.tsx (see CLAUDE.md
 // > Ground truth). CSV export runs entirely client-side (Blob + object
-// URL), no external calls.
+// URL), no external calls — now via the shared lib/csv helper.
 interface ResolvedIncident {
   id: string;
   user_id: string;
@@ -52,25 +53,21 @@ export function AuditLog() {
   };
 
   const exportCSV = () => {
-    const headers = ["Date", "Employee", "Severity", "Outcome", "Resolved By", "Duration", "Notes"];
-    const rows = incidents.map((i) => [
-      formatDate(i.created_at),
-      i.user_id.slice(0, 8),
-      i.severity,
-      i.outcome ? outcomeLabels[i.outcome] || i.outcome : "",
-      i.resolved_by?.slice(0, 8) || "",
-      getDuration(i.created_at, i.resolved_at),
-      (i.resolution_notes || "").replace(/,/g, ";"),
-    ]);
-
-    const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `incident-audit-log-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    // Notes are no longer comma-stripped — downloadCsv quotes them, so the
+    // exported text matches what the manager actually wrote.
+    downloadCsv(
+      "incident-audit-log",
+      ["Date", "Employee", "Severity", "Outcome", "Resolved By", "Duration", "Notes"],
+      incidents.map((i) => [
+        formatDate(i.created_at),
+        i.user_id.slice(0, 8),
+        i.severity,
+        i.outcome ? outcomeLabels[i.outcome] || i.outcome : "",
+        i.resolved_by?.slice(0, 8) || "",
+        getDuration(i.created_at, i.resolved_at),
+        i.resolution_notes || "",
+      ]),
+    );
   };
 
   return (

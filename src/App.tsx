@@ -6,6 +6,7 @@ import { Toaster } from "sonner";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 import { SafetyTimerProvider } from "@/contexts/SafetyTimerContext";
+import { useProfile } from "@/hooks/useProfile";
 
 import AuthPage from "@/pages/AuthPage";
 import ConsumerPage from "@/pages/ConsumerPage";
@@ -42,13 +43,50 @@ function AuthRoute({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
+/**
+ * Gates the two business workspaces on the signed-in user's real org/role.
+ *
+ * RLS already blocks the data, but without this an ordinary member reaching
+ * /business/admin got the whole console rendering empty — confusing, and more
+ * so now that managers can mint public seller links from it.
+ *
+ * The fallback is deliberately tiered rather than always sending people to
+ * /business/member: a user with no organization has no more business on the
+ * field view than on the console, so they go to /consumer.
+ */
+function RequireWorkspace({ need, children }: { need: "member" | "admin"; children: ReactNode }) {
+  const { hasOrganization, isManager, loading } = useProfile();
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <p className="text-muted-foreground">Loading...</p>
+      </div>
+    );
+  }
+
+  if (!hasOrganization) return <Navigate to="/consumer" replace />;
+  if (need === "admin" && !isManager) return <Navigate to="/business/member" replace />;
+  return <>{children}</>;
+}
+
+/** Feeds the signed-in user's real org/role into WorkspaceProvider. */
+function WorkspaceGate({ children }: { children: ReactNode }) {
+  const { hasOrganization, isManager } = useProfile();
+  return (
+    <WorkspaceProvider hasOrganization={hasOrganization} isManager={isManager}>
+      {children}
+    </WorkspaceProvider>
+  );
+}
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <Toaster theme="dark" position="top-center" richColors />
       <BrowserRouter basename={import.meta.env.BASE_URL}>
         <AuthProvider>
-          <WorkspaceProvider>
+          <WorkspaceGate>
             <SafetyTimerProvider>
               <Routes>
                 <Route
@@ -71,7 +109,9 @@ export default function App() {
                   path="/business/member/*"
                   element={
                     <ProtectedRoute>
-                      <MemberPage />
+                      <RequireWorkspace need="member">
+                        <MemberPage />
+                      </RequireWorkspace>
                     </ProtectedRoute>
                   }
                 />
@@ -79,7 +119,9 @@ export default function App() {
                   path="/business/admin"
                   element={
                     <ProtectedRoute>
-                      <AdminPage />
+                      <RequireWorkspace need="admin">
+                        <AdminPage />
+                      </RequireWorkspace>
                     </ProtectedRoute>
                   }
                 />
@@ -89,7 +131,7 @@ export default function App() {
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </SafetyTimerProvider>
-          </WorkspaceProvider>
+          </WorkspaceGate>
         </AuthProvider>
       </BrowserRouter>
     </QueryClientProvider>

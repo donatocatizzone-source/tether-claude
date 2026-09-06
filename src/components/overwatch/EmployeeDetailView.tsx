@@ -14,8 +14,8 @@ interface Props {
   employee: Employee;
   onBack: () => void;
   onIncidentCreated: (incident: LocalIncident) => void;
-  onClearAlert: (employeeName: string) => void;
-  onSetActive: (employeeName: string) => void;
+  onClearAlert: (employee: Employee) => void;
+  onSetActive: (employee: Employee) => void;
 }
 
 const quickActions = [
@@ -115,7 +115,7 @@ export function EmployeeDetailView({ employee, onBack, onIncidentCreated, onClea
               <Button
                 size="sm"
                 onClick={() => {
-                  onSetActive(employee.name);
+                  onSetActive(employee);
                   toast.success(`${employee.name} set to active`);
                 }}
                 className="bg-amber-500 text-white hover:bg-amber-600"
@@ -135,7 +135,7 @@ export function EmployeeDetailView({ employee, onBack, onIncidentCreated, onClea
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  onClearAlert(employee.name);
+                  onClearAlert(employee);
                   toast.success(`${employee.name} marked as safe`);
                 }}
                 className="border-primary/30 text-primary hover:bg-primary/10"
