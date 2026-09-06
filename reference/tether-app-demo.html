@@ -1,0 +1,1865 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tether: Mobile App Demo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a; /* Slate 900 */
+            color: #f8fafc;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Brand Gradients */
+        .bg-brand-gradient {
+            background: linear-gradient(135deg, #4292c6 0%, #2dd4bf 100%);
+        }
+
+        /* Phone Simulator */
+        .phone-frame {
+            width: 375px;
+            height: 812px;
+            box-shadow: 0 0 0 12px #1e293b, 0 0 0 13px #334155, 0 50px 100px -20px rgba(0, 0, 0, 0.7);
+            border-radius: 50px;
+            overflow: hidden;
+            position: relative;
+            background: #fff;
+            transform: scale(0.9);
+        }
+
+        @media (min-height: 900px) {
+            .phone-frame { transform: scale(1); }
+        }
+        
+        /* Dynamic Notch */
+        .notch {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 160px;
+            height: 32px;
+            background: #1e293b;
+            border-bottom-left-radius: 20px;
+            border-bottom-right-radius: 20px;
+            z-index: 50;
+        }
+
+        /* Screen Transitions */
+        .screen {
+            position: absolute;
+            inset: 0;
+            background: #fff;
+            color: #0f172a;
+            overflow-y: auto;
+            overflow-x: hidden;
+            display: none; /* Default hidden */
+            opacity: 0;
+            transition: opacity 0.2s ease-in-out;
+            z-index: 0;
+            padding-bottom: 100px; /* Space for global nav */
+        }
+        .screen.active {
+            display: flex; /* Active screens are flex containers */
+            flex-direction: column;
+            opacity: 1;
+            z-index: 10;
+        }
+
+        /* Custom Scrollbar for Phone */
+        .screen::-webkit-scrollbar { width: 0px; }
+
+        /* Animations */
+        @keyframes ping-slow {
+            75%, 100% { transform: scale(2); opacity: 0; }
+        }
+        .animate-ping-slow { animation: ping-slow 2s cubic-bezier(0, 0, 0.2, 1) infinite; }
+        
+        /* Toast Notification Animation */
+        @keyframes slideDownFade {
+            from { opacity: 0; transform: translateY(-20px) translateX(-50%); }
+            to { opacity: 1; transform: translateY(0) translateX(-50%); }
+        }
+        .toast-notification {
+            position: absolute;
+            top: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 60;
+            animation: slideDownFade 0.3s ease-out forwards;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Menu Drawer Animation */
+        #menu-drawer {
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        #menu-drawer.open {
+            transform: translateX(0);
+        }
+
+        /* Pay Sheet Animation */
+        #pay-sheet {
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        #pay-sheet.open {
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Background Ambience -->
+    <div class="fixed inset-0 pointer-events-none">
+        <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-[#4292c6] opacity-20 rounded-full blur-[100px]"></div>
+        <div class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-[#2dd4bf] opacity-20 rounded-full blur-[100px]"></div>
+    </div>
+
+    <!-- Phone Frame -->
+    <div class="phone-frame shadow-2xl z-20">
+        <div class="notch"></div>
+        
+        <!-- STATUS BAR -->
+        <div class="absolute top-0 w-full h-12 z-40 flex justify-between items-center px-8 pt-2">
+            <span class="text-[12px] font-bold text-slate-900 status-text">9:41</span>
+            <div class="flex gap-1.5 status-icons text-slate-900">
+                <i data-lucide="signal" class="w-3.5 h-3.5"></i>
+                <i data-lucide="wifi" class="w-3.5 h-3.5"></i>
+                <i data-lucide="battery" class="w-3.5 h-3.5"></i>
+            </div>
+        </div>
+
+        <!-- Toast Container -->
+        <div id="toast-container"></div>
+
+        <!-- PAYMENT SHEET OVERLAY -->
+        <div id="pay-sheet" class="absolute inset-x-0 bottom-0 h-3/4 bg-white z-[60] rounded-t-[30px] shadow-[0_-10px_40px_rgba(0,0,0,0.3)] transform translate-y-full flex flex-col">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center">
+                <h3 class="font-bold text-lg">Choose Protection</h3>
+                <button onclick="closePaySheet()" class="p-2 bg-slate-100 rounded-full"><i data-lucide="x" class="w-4 h-4"></i></button>
+            </div>
+            <div class="p-6 flex flex-col items-center flex-1 overflow-y-auto">
+                <div class="w-16 h-16 rounded-2xl bg-brand-gradient flex items-center justify-center text-white mb-4 shadow-xl">
+                    <i data-lucide="shield" class="w-8 h-8 fill-current"></i>
+                </div>
+                <h2 class="text-xl font-bold text-slate-900 mb-6">Tether Guardian</h2>
+                
+                <!-- Plans -->
+                <div class="w-full space-y-4 mb-8">
+                    <!-- Monthly Plan -->
+                    <div id="plan-monthly" class="p-4 border-2 border-blue-500 bg-blue-50 rounded-xl flex justify-between items-center cursor-pointer relative transition-all" onclick="selectPlan('monthly')">
+                        <div class="absolute -top-3 right-4 bg-blue-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">BEST VALUE</div>
+                        <div class="flex items-center gap-3">
+                            <div class="w-5 h-5 rounded-full border-2 border-blue-500 flex items-center justify-center bg-white">
+                                <div id="dot-monthly" class="w-2.5 h-2.5 rounded-full bg-blue-500"></div>
+                            </div>
+                            <div class="text-left">
+                                <div class="font-bold text-slate-900 text-sm">Monthly Guardian</div>
+                                <div class="text-xs text-slate-500">24/7 Premium Protection</div>
+                            </div>
+                        </div>
+                        <span class="font-bold text-slate-900">$9.99<span class="text-xs font-normal text-slate-400">/mo</span></span>
+                    </div>
+
+                    <!-- Single Mission -->
+                    <div id="plan-single" class="p-4 border-2 border-transparent bg-white rounded-xl flex justify-between items-center cursor-pointer hover:bg-slate-50 transition-all shadow-sm" onclick="selectPlan('single')">
+                         <div class="flex items-center gap-3">
+                            <div class="w-5 h-5 rounded-full border-2 border-slate-300 flex items-center justify-center bg-white">
+                                <div id="dot-single" class="w-2.5 h-2.5 rounded-full bg-transparent"></div>
+                            </div>
+                            <div class="text-left">
+                                <div class="font-bold text-slate-900 text-sm">Single Mission</div>
+                                <div class="text-xs text-slate-500">Protect for one night</div>
+                            </div>
+                        </div>
+                        <span class="font-bold text-slate-900">$0.99</span>
+                    </div>
+                </div>
+
+                <div class="mt-auto w-full">
+                    <button onclick="processPayment()" class="w-full py-4 bg-black text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-slate-800 transition relative overflow-hidden" id="pay-btn">
+                        <div id="pay-text" class="flex items-center gap-2">
+                            <i data-lucide="apple" class="w-5 h-5 fill-current"></i> Pay <span id="pay-amount">$9.99</span>
+                        </div>
+                        <div id="pay-spinner" class="hidden absolute inset-0 flex items-center justify-center">
+                            <i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i>
+                        </div>
+                    </button>
+                    <p class="text-[10px] text-center text-slate-400 mt-4">Recurring billing. Cancel anytime.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- HAMBURGER MENU DRAWER -->
+        <div id="menu-drawer" class="absolute inset-0 bg-slate-900 z-50 transform -translate-x-full flex flex-col">
+            <div class="p-6 pt-16 flex justify-between items-center border-b border-slate-800">
+                <h2 class="text-white font-bold text-xl">Menu</h2>
+                <button onclick="toggleMenu()" class="p-2 bg-slate-800 rounded-full text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            
+            <div class="p-6 space-y-2 flex-1 overflow-y-auto">
+                <!-- B2B LINK -->
+                <button onclick="switchScreen('b2b-home'); toggleMenu();" class="w-full p-4 mb-6 bg-gradient-to-r from-amber-200 to-yellow-500 rounded-xl flex items-center gap-4 text-slate-900 shadow-lg transform transition hover:scale-[1.02]">
+                    <div class="w-10 h-10 rounded-full bg-white/30 flex items-center justify-center">
+                        <i data-lucide="briefcase" class="w-5 h-5 text-slate-900"></i>
+                    </div>
+                    <div class="text-left">
+                        <div class="font-bold text-sm">Switch to Professional</div>
+                        <div class="text-xs text-slate-800/80">For Realtors & Agents</div>
+                    </div>
+                    <i data-lucide="arrow-right" class="w-4 h-4 ml-auto"></i>
+                </button>
+
+                <div class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 mt-2">Premium Features</div>
+                
+                <button onclick="openPremium('dispatch')" class="w-full p-4 bg-slate-800/50 rounded-xl flex items-center gap-4 text-white hover:bg-slate-800 transition group">
+                    <div class="w-10 h-10 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center group-hover:bg-red-500 group-hover:text-white transition">
+                        <i data-lucide="phone-call" class="w-5 h-5"></i>
+                    </div>
+                    <div class="text-left">
+                        <div class="font-bold text-sm">Live 911 Dispatch</div>
+                        <div class="text-xs text-slate-400">Direct API connection</div>
+                    </div>
+                    <i data-lucide="chevron-right" class="w-4 h-4 text-slate-500 ml-auto"></i>
+                </button>
+
+                <!-- Guardian Dashboard with Preview Option -->
+                <div class="w-full p-4 bg-slate-800/50 rounded-xl flex flex-col gap-3 text-white hover:bg-slate-800 transition group">
+                    <div class="flex items-center gap-4 cursor-pointer" onclick="openPremium('guardian')">
+                         <div class="w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center group-hover:bg-emerald-500 group-hover:text-white transition">
+                            <i data-lucide="users" class="w-5 h-5"></i>
+                        </div>
+                        <div class="text-left flex-1">
+                            <div class="font-bold text-sm">Guardian Dashboard</div>
+                            <div class="text-xs text-slate-400">Parental controls</div>
+                        </div>
+                        <i data-lucide="chevron-right" class="w-4 h-4 text-slate-500"></i>
+                    </div>
+                    <button onclick="openGuardianPreview(); event.stopPropagation();" class="w-full py-2 mt-1 text-xs font-bold text-emerald-400 bg-emerald-500/10 rounded-lg border border-emerald-500/30 hover:bg-emerald-500/20 transition flex items-center justify-center gap-2">
+                        <i data-lucide="eye" class="w-3 h-3"></i> See Preview
+                    </button>
+                </div>
+
+                <button onclick="openPremium('badge')" class="w-full p-4 bg-slate-800/50 rounded-xl flex items-center gap-4 text-white hover:bg-slate-800 transition group">
+                    <div class="w-10 h-10 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center group-hover:bg-blue-500 group-hover:text-white transition">
+                        <i data-lucide="shield-check" class="w-5 h-5"></i>
+                    </div>
+                    <div class="text-left">
+                        <div class="font-bold text-sm">Vouch Badge</div>
+                        <div class="text-xs text-slate-400">Verified ID Status</div>
+                    </div>
+                    <i data-lucide="chevron-right" class="w-4 h-4 text-slate-500 ml-auto"></i>
+                </button>
+
+                <div class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 mt-6">Account</div>
+                <button onclick="openPaySheet()" class="w-full p-3 flex items-center gap-3 text-slate-300 hover:text-white">
+                    <i data-lucide="credit-card" class="w-5 h-5"></i> Billing & Plans
+                </button>
+                <button onclick="switchScreen('settings')" class="w-full p-3 flex items-center gap-3 text-slate-300 hover:text-white">
+                    <i data-lucide="settings" class="w-5 h-5"></i> App Settings
+                </button>
+            </div>
+
+            <div class="p-6 border-t border-slate-800">
+                <button onclick="openPaySheet()" class="w-full py-3 bg-gradient-to-r from-blue-600 to-teal-500 text-white font-bold rounded-xl shadow-lg">Upgrade to Premium</button>
+            </div>
+        </div>
+
+        <!-- GLOBAL BOTTOM NAVIGATION -->
+        <div id="bottom-nav" class="absolute bottom-0 w-full h-24 bg-white border-t border-slate-100 flex justify-around items-start pt-4 px-2 z-40 rounded-b-[40px]">
+            <button onclick="switchScreen('home')" id="nav-home" class="nav-btn flex flex-col items-center p-2 text-[#4292c6] w-16 hover:bg-slate-50 rounded-lg transition">
+                <i data-lucide="home" class="w-6 h-6 mb-1"></i>
+                <span class="text-[10px] font-medium">Home</span>
+            </button>
+            <button onclick="switchScreen('active-timer')" id="nav-active" class="nav-btn flex flex-col items-center p-2 text-slate-400 hover:text-slate-600 transition w-16 hover:bg-slate-50 rounded-lg">
+                <i data-lucide="clock" class="w-6 h-6 mb-1"></i>
+                <span class="text-[10px] font-medium">Active</span>
+            </button>
+            <div class="w-16"></div> <!-- Spacer for floating button -->
+            <button onclick="switchScreen('circle')" id="nav-circle" class="nav-btn flex flex-col items-center p-2 text-slate-400 hover:text-slate-600 transition w-16 hover:bg-slate-50 rounded-lg">
+                <i data-lucide="users" class="w-6 h-6 mb-1"></i>
+                <span class="text-[10px] font-medium">Circle</span>
+            </button>
+            <button onclick="switchScreen('settings')" id="nav-settings" class="nav-btn flex flex-col items-center p-2 text-slate-400 hover:text-slate-600 transition w-16 hover:bg-slate-50 rounded-lg">
+                <i data-lucide="settings" class="w-6 h-6 mb-1"></i>
+                <span class="text-[10px] font-medium">More</span>
+            </button>
+
+            <!-- Floating Center Button -->
+            <button onclick="switchScreen('active-timer')" class="absolute -top-8 left-1/2 transform -translate-x-1/2 w-16 h-16 bg-slate-900 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition border-4 border-slate-50">
+                <i data-lucide="shield" class="w-7 h-7 text-white"></i>
+            </button>
+        </div>
+
+        <!-- === SCREEN 1: HOME DASHBOARD === -->
+        <div id="screen-home" class="screen active bg-slate-50">
+            <!-- Header -->
+            <div class="p-6 pt-16 pb-6 bg-white border-b border-slate-100 shadow-sm sticky top-0 z-20">
+                <div class="flex justify-between items-center mb-4">
+                    <button onclick="toggleMenu()" class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center hover:bg-slate-200 transition">
+                        <i data-lucide="menu" class="w-5 h-5 text-slate-900"></i>
+                    </button>
+                    <!-- Updated Profile with Generic Emoji Avatar -->
+                    <div class="relative">
+                        <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center border-2 border-white shadow text-2xl">
+                            👨🏻
+                        </div>
+                        <div class="absolute -bottom-1 -right-1 w-5 h-5 bg-blue-500 rounded-full border-2 border-white flex items-center justify-center text-white shadow-sm">
+                            <i data-lucide="check" class="w-3 h-3"></i>
+                        </div>
+                    </div>
+                </div>
+                <h2 class="text-2xl font-bold text-slate-900">Hello, Gabe</h2>
+                <div class="flex items-center gap-2 mt-1">
+                    <span class="w-2 h-2 rounded-full bg-slate-300"></span>
+                    <p class="text-xs text-slate-500 font-medium">Protection is currently inactive</p>
+                </div>
+            </div>
+
+            <!-- Main Action: Safety Dashboard -->
+            <div class="p-6">
+                <div class="bg-white rounded-[2rem] p-6 shadow-xl border border-slate-100 relative overflow-hidden group">
+                    <div class="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+                        <i data-lucide="shield-check" class="w-32 h-32 text-slate-900"></i>
+                    </div>
+                    
+                    <div class="relative z-10">
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                            <span class="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">System Online</span>
+                        </div>
+                        <h3 class="text-2xl font-bold text-slate-900 mb-6 tracking-tight">You are Safe</h3>
+                        
+                        <div class="grid grid-cols-2 gap-3 mb-6">
+                            <button onclick="switchScreen('circle')" class="bg-slate-50 p-3 rounded-xl border border-slate-100 text-left hover:bg-slate-100 transition">
+                                <div class="text-slate-400 text-[10px] uppercase font-bold mb-1">Safety Circle</div>
+                                <div class="text-slate-900 font-bold text-sm flex items-center gap-1">
+                                    <i data-lucide="users" class="w-3 h-3"></i> 3 Active
+                                </div>
+                            </button>
+                            <button onclick="switchScreen('vouch')" class="bg-slate-50 p-3 rounded-xl border border-slate-100 text-left hover:bg-slate-100 transition">
+                                <div class="text-slate-400 text-[10px] uppercase font-bold mb-1">Vouch Score</div>
+                                <div class="text-slate-900 font-bold text-sm flex items-center gap-1">
+                                    <i data-lucide="star" class="w-3 h-3 fill-current text-yellow-400"></i> 98/100
+                                </div>
+                            </button>
+                        </div>
+
+                        <button onclick="switchScreen('active-timer')" class="w-full py-4 bg-brand-gradient text-white rounded-xl font-bold shadow-lg shadow-blue-200 hover:shadow-xl transition transform active:scale-95 flex items-center justify-center gap-2 group">
+                            <div class="bg-white/20 p-1 rounded-full group-hover:rotate-12 transition">
+                                <i data-lucide="shield" class="w-4 h-4 fill-current"></i>
+                            </div>
+                            Arm Safety Tether
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Modes -->
+            <div class="px-6 pb-6">
+                <div class="grid grid-cols-2 gap-4">
+                    <!-- Dating Mode -->
+                    <button onclick="openModeMenu('dating')" class="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm active:scale-95 transition text-left group hover:border-pink-200">
+                        <div class="w-10 h-10 rounded-xl bg-pink-50 text-pink-500 flex items-center justify-center mb-3 group-hover:bg-pink-100 transition">
+                            <i data-lucide="heart" class="w-5 h-5"></i>
+                        </div>
+                        <div class="font-bold text-slate-900 text-sm">Dating</div>
+                        <div class="text-[11px] text-slate-500 mt-0.5">Meetings & Dates</div>
+                    </button>
+
+                    <!-- Ride Mode -->
+                    <button onclick="openModeMenu('ride')" class="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm active:scale-95 transition text-left group hover:border-indigo-200">
+                        <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-500 flex items-center justify-center mb-3 group-hover:bg-indigo-100 transition">
+                            <i data-lucide="car" class="w-5 h-5"></i>
+                        </div>
+                        <div class="font-bold text-slate-900 text-sm">Ride</div>
+                        <div class="text-[11px] text-slate-500 mt-0.5">Solo Travel</div>
+                    </button>
+
+                    <!-- Market Mode -->
+                    <button onclick="openModeMenu('market')" class="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm active:scale-95 transition text-left group hover:border-sky-200">
+                        <div class="w-10 h-10 rounded-xl bg-sky-50 text-sky-500 flex items-center justify-center mb-3 group-hover:bg-sky-100 transition">
+                            <i data-lucide="shopping-bag" class="w-5 h-5"></i>
+                        </div>
+                        <div class="font-bold text-slate-900 text-sm">Marketplace</div>
+                        <div class="text-[11px] text-slate-500 mt-0.5">Buying & Selling</div>
+                    </button>
+
+                    <!-- Student Mode (RE-ADDED) -->
+                    <button onclick="openModeMenu('student')" class="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm active:scale-95 transition text-left group hover:border-emerald-200">
+                        <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-500 flex items-center justify-center mb-3 group-hover:bg-emerald-100 transition">
+                            <i data-lucide="graduation-cap" class="w-5 h-5"></i>
+                        </div>
+                        <div class="font-bold text-slate-900 text-sm">Student</div>
+                        <div class="text-[11px] text-slate-500 mt-0.5">Campus Safety</div>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- === SCREEN: B2B HOME (REALTOR MODE) === -->
+        <div id="screen-b2b-home" class="screen bg-slate-900 text-white">
+            <div class="h-full flex flex-col p-6 pt-16">
+                 <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <div class="flex items-center gap-2 mb-1">
+                             <div class="w-6 h-6 rounded-md bg-yellow-500 flex items-center justify-center text-slate-900 font-bold text-xs">P</div>
+                             <span class="text-xs font-bold text-yellow-500 uppercase tracking-widest">Professional</span>
+                        </div>
+                        <h2 class="text-2xl font-bold">Agent Dashboard</h2>
+                    </div>
+                    <button onclick="switchScreen('home')" class="px-3 py-1.5 rounded-lg border border-slate-600 text-xs text-slate-400 hover:text-white hover:border-white transition">Exit Pro</button>
+                </div>
+
+                <!-- Showing Status -->
+                <div class="bg-slate-800 rounded-3xl p-6 border border-slate-700 mb-6 shadow-xl relative overflow-hidden">
+                    <div class="absolute top-0 right-0 p-4 opacity-10"><i data-lucide="home" class="w-32 h-32"></i></div>
+                    
+                    <div class="relative z-10">
+                        <span class="text-[10px] bg-emerald-900/50 text-emerald-400 px-2 py-1 rounded border border-emerald-500/20">GPS ACTIVE</span>
+                        <h3 class="text-xl font-bold mt-4 mb-1">Next Showing: 2:00 PM</h3>
+                        <p class="text-sm text-slate-400 mb-6">456 Hollywood Blvd, Los Angeles</p>
+                        
+                        <button onclick="switchScreen('active-timer')" class="w-full py-4 bg-gradient-to-r from-yellow-500 to-amber-600 text-slate-900 font-bold rounded-xl flex items-center justify-center gap-2 shadow-lg hover:brightness-110 transition">
+                            <i data-lucide="key" class="w-4 h-4"></i> Start Showing Timer
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Pro Tools Grid -->
+                <div class="grid grid-cols-2 gap-4">
+                    <button onclick="switchScreen('b2b-openhouse')" class="p-5 bg-slate-800 rounded-2xl border border-slate-700 text-left hover:border-yellow-500/50 transition group">
+                        <div class="w-10 h-10 rounded-xl bg-slate-700 flex items-center justify-center mb-3 group-hover:bg-yellow-500 group-hover:text-slate-900 transition">
+                            <i data-lucide="users" class="w-5 h-5"></i>
+                        </div>
+                        <h4 class="font-bold text-sm">Open House</h4>
+                        <p class="text-[10px] text-slate-500 mt-1">Geofence Monitor</p>
+                    </button>
+                    
+                    <button onclick="showToast('ID Verification API Loading...', 'info')" class="p-5 bg-slate-800 rounded-2xl border border-slate-700 text-left hover:border-yellow-500/50 transition group">
+                        <div class="w-10 h-10 rounded-xl bg-slate-700 flex items-center justify-center mb-3 group-hover:bg-yellow-500 group-hover:text-slate-900 transition">
+                            <i data-lucide="scan-face" class="w-5 h-5"></i>
+                        </div>
+                        <h4 class="font-bold text-sm">Verify Client</h4>
+                        <p class="text-[10px] text-slate-500 mt-1">Scan ID / Driver Lic</p>
+                    </button>
+
+                    <button onclick="switchScreen('b2b-team')" class="p-5 bg-slate-800 rounded-2xl border border-slate-700 text-left hover:border-yellow-500/50 transition group col-span-2 flex items-center justify-between">
+                         <div>
+                            <h4 class="font-bold text-sm">Team Status</h4>
+                            <p class="text-[10px] text-slate-500 mt-1">Keller Williams - Team A</p>
+                         </div>
+                         <div class="flex -space-x-2">
+                             <div class="w-8 h-8 rounded-full bg-slate-600 border-2 border-slate-800"></div>
+                             <div class="w-8 h-8 rounded-full bg-slate-500 border-2 border-slate-800"></div>
+                             <div class="w-8 h-8 rounded-full bg-yellow-500 border-2 border-slate-800 flex items-center justify-center text-[10px] font-bold text-slate-900">+3</div>
+                         </div>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- === SCREEN: B2B TEAM STATUS === -->
+        <div id="screen-b2b-team" class="screen bg-slate-900 text-white">
+            <div class="h-full flex flex-col p-6 pt-12 relative">
+                 <!-- Header -->
+                <div class="flex items-center gap-3 mb-8 sticky top-0 z-10 bg-slate-900 py-2">
+                     <button onclick="switchScreen('b2b-home')" class="w-10 h-10 bg-slate-800 rounded-full shadow-sm flex items-center justify-center hover:bg-slate-700 transition">
+                        <i data-lucide="arrow-left" class="w-5 h-5 text-white"></i>
+                    </button>
+                    <div>
+                        <h2 class="font-bold text-xl text-white">Team Safety</h2>
+                        <p class="text-xs text-slate-400">Keller Williams - Team A</p>
+                    </div>
+                </div>
+                
+                <!-- Summary Card -->
+                <div class="bg-emerald-900/30 border border-emerald-500/30 p-4 rounded-xl flex items-center gap-3 mb-6">
+                    <div class="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400">
+                        <i data-lucide="check-circle" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-sm text-emerald-400">All Agents Safe</h4>
+                        <p class="text-[10px] text-slate-400">Last update: Just now</p>
+                    </div>
+                </div>
+                
+                <!-- Agent List -->
+                <div class="space-y-3">
+                    <!-- Agent 1 -->
+                    <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-slate-600"></div>
+                            <div>
+                                <h4 class="font-bold text-sm">Sarah Jenkins</h4>
+                                <p class="text-xs text-slate-400 flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> At Office • 92%</p>
+                            </div>
+                        </div>
+                        <button class="p-2 bg-slate-700 rounded-lg hover:bg-slate-600"><i data-lucide="message-square" class="w-4 h-4 text-slate-300"></i></button>
+                    </div>
+                    
+                    <!-- Agent 2 (Active) -->
+                    <div class="bg-slate-800 p-4 rounded-xl border border-yellow-500/30 flex items-center justify-between relative overflow-hidden">
+                        <div class="absolute left-0 top-0 bottom-0 w-1 bg-yellow-500"></div>
+                        <div class="flex items-center gap-3 pl-2">
+                            <div class="w-10 h-10 rounded-full bg-slate-600"></div>
+                            <div>
+                                <h4 class="font-bold text-sm">David Kim</h4>
+                                <p class="text-xs text-yellow-500 flex items-center gap-1"><i data-lucide="key" class="w-3 h-3"></i> Showing Active (12m)</p>
+                                <p class="text-[10px] text-slate-500">123 Sunset Blvd</p>
+                            </div>
+                        </div>
+                         <button class="p-2 bg-slate-700 rounded-lg hover:bg-slate-600"><i data-lucide="map-pin" class="w-4 h-4 text-slate-300"></i></button>
+                    </div>
+                    
+                    <!-- Agent 3 -->
+                    <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-slate-600"></div>
+                            <div>
+                                <h4 class="font-bold text-sm">Mike Ross</h4>
+                                <p class="text-xs text-slate-400 flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span> Idle • Last seen 1h ago</p>
+                            </div>
+                        </div>
+                        <button class="p-2 bg-slate-700 rounded-lg hover:bg-slate-600"><i data-lucide="message-square" class="w-4 h-4 text-slate-300"></i></button>
+                    </div>
+                </div>
+                
+                <div class="mt-auto pt-6 pb-24 grid grid-cols-2 gap-4">
+                    <button class="py-4 bg-slate-800 text-white text-xs font-bold rounded-xl border border-slate-700 hover:bg-slate-700">Request Check-in</button>
+                    <button class="py-4 bg-yellow-600 text-white text-xs font-bold rounded-xl hover:bg-yellow-700">Team Broadcast</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- === SCREEN: B2B OPEN HOUSE === -->
+        <div id="screen-b2b-openhouse" class="screen bg-slate-900 text-white">
+             <div class="h-full flex flex-col p-6 pt-12 relative">
+                <!-- Header -->
+                <div class="flex items-center gap-3 mb-8 sticky top-0 z-10 bg-slate-900 py-2">
+                     <button onclick="switchScreen('b2b-home')" class="w-10 h-10 bg-slate-800 rounded-full shadow-sm flex items-center justify-center hover:bg-slate-700 transition">
+                        <i data-lucide="arrow-left" class="w-5 h-5 text-white"></i>
+                    </button>
+                    <div>
+                        <h2 class="font-bold text-xl text-white">Open House</h2>
+                        <p class="text-xs text-yellow-500">Active Monitoring</p>
+                    </div>
+                </div>
+
+                <!-- House Map -->
+                <div class="bg-slate-800 rounded-2xl h-64 mb-6 relative overflow-hidden border border-slate-700">
+                    <div class="absolute inset-0 opacity-30 bg-[url('https://images.unsplash.com/photo-1568605114967-8130f3a36994?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80')] bg-cover bg-center"></div>
+                    <div class="absolute inset-0 bg-indigo-900/40"></div>
+                    
+                    <!-- Radar Ping Animation -->
+                    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+                        <span class="relative flex h-24 w-24">
+                          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-20"></span>
+                          <span class="relative inline-flex rounded-full h-24 w-24 border-2 border-yellow-500 opacity-50"></span>
+                        </span>
+                    </div>
+                    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-yellow-500 rounded-full border-2 border-white shadow-lg"></div>
+                    
+                    <div class="absolute bottom-4 left-4 bg-black/60 backdrop-blur px-3 py-1 rounded text-xs font-mono">Geofence: 100ft</div>
+                </div>
+
+                <!-- Controls -->
+                <div class="space-y-4">
+                    <div class="p-4 bg-slate-800 rounded-xl border border-slate-700 flex justify-between items-center">
+                        <div>
+                             <h4 class="font-bold text-sm">Auto-Check In</h4>
+                             <p class="text-[10px] text-slate-500">Vibrate phone every 15m</p>
+                        </div>
+                        <div class="w-10 h-6 bg-yellow-500 rounded-full relative"><div class="absolute right-1 top-1 w-4 h-4 bg-white rounded-full shadow"></div></div>
+                    </div>
+
+                    <button onclick="showToast('Silent Alarm Triggered - Team Notified', 'error')" class="w-full py-6 bg-red-900/50 border border-red-500/50 text-red-400 rounded-xl font-bold flex flex-col items-center justify-center gap-1 hover:bg-red-900 transition">
+                        <i data-lucide="bell-off" class="w-6 h-6 mb-1"></i>
+                        SILENT ALARM
+                    </button>
+                    <p class="text-center text-[10px] text-slate-500">Alerts broker & team immediately. No local sound.</p>
+                </div>
+             </div>
+        </div>
+
+         <!-- === SCREEN: VOUCH SCORE === -->
+        <div id="screen-vouch" class="screen bg-slate-50">
+            <div class="h-full flex flex-col p-6 pt-12 relative">
+                <!-- Header -->
+                <div class="flex items-center gap-3 mb-8 sticky top-0 z-10 bg-slate-50 py-2">
+                     <button onclick="switchScreen('home')" class="w-10 h-10 bg-white rounded-full shadow-sm flex items-center justify-center border border-slate-100 active:scale-95 transition">
+                        <i data-lucide="arrow-left" class="w-5 h-5 text-slate-700"></i>
+                    </button>
+                    <div>
+                        <h2 class="font-bold text-xl text-slate-900">Trust Score</h2>
+                        <p class="text-xs text-slate-500">Vouched by Community</p>
+                    </div>
+                </div>
+
+                <!-- Score Card -->
+                <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 flex flex-col items-center mb-8">
+                    <div class="w-32 h-32 rounded-full border-[8px] border-yellow-100 flex items-center justify-center mb-4 relative">
+                         <i data-lucide="star" class="w-12 h-12 text-yellow-400 fill-current absolute"></i>
+                         <svg class="w-full h-full transform -rotate-90 absolute inset-0">
+                             <circle cx="60" cy="60" r="54" stroke="#fde047" stroke-width="8" fill="none" stroke-dasharray="339" stroke-dashoffset="10" stroke-linecap="round" />
+                         </svg>
+                    </div>
+                    <h3 class="text-4xl font-black text-slate-900">98<span class="text-lg text-slate-400 font-medium">/100</span></h3>
+                    <p class="text-xs text-slate-500 mt-2 bg-yellow-50 text-yellow-700 px-3 py-1 rounded-full font-bold">High Trust Level</p>
+                </div>
+
+                <!-- History List -->
+                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Recent Badges</h3>
+                <div class="space-y-3 pb-24">
+                    <div class="bg-white p-4 rounded-2xl border border-slate-100 flex items-center gap-4">
+                        <div class="w-10 h-10 rounded-full bg-pink-100 flex items-center justify-center text-pink-500">
+                            <i data-lucide="heart" class="w-5 h-5"></i>
+                        </div>
+                        <div class="flex-1">
+                            <h4 class="font-bold text-sm text-slate-900">Verified Date</h4>
+                            <p class="text-xs text-slate-500">Safety check completed with Sarah</p>
+                        </div>
+                        <span class="text-xs font-bold text-green-500">+5</span>
+                    </div>
+
+                    <div class="bg-white p-4 rounded-2xl border border-slate-100 flex items-center gap-4">
+                        <div class="w-10 h-10 rounded-full bg-sky-100 flex items-center justify-center text-sky-500">
+                            <i data-lucide="shopping-bag" class="w-5 h-5"></i>
+                        </div>
+                        <div class="flex-1">
+                            <h4 class="font-bold text-sm text-slate-900">Safe Transaction</h4>
+                            <p class="text-xs text-slate-500">Marketplace meet with Mike</p>
+                        </div>
+                        <span class="text-xs font-bold text-green-500">+5</span>
+                    </div>
+
+                     <div class="bg-white p-4 rounded-2xl border border-slate-100 flex items-center gap-4">
+                        <div class="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-500">
+                            <i data-lucide="car" class="w-5 h-5"></i>
+                        </div>
+                        <div class="flex-1">
+                            <h4 class="font-bold text-sm text-slate-900">Verified Trip</h4>
+                            <p class="text-xs text-slate-500">Completed route #8821</p>
+                        </div>
+                        <span class="text-xs font-bold text-green-500">+2</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- === NEW: STUDENT MODE BUS === -->
+        <div id="screen-student-bus" class="screen bg-yellow-50">
+            <!-- Bus Map Background -->
+            <div class="absolute inset-0 z-0 opacity-60">
+                <svg width="100%" height="100%">
+                    <rect width="100%" height="100%" fill="#fefce8" /> <!-- Yellow-50 -->
+                    <path d="M 50 700 L 180 400 L 300 100" stroke="#fbbf24" stroke-width="12" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+                    <path d="M 50 700 L 180 400 L 300 100" stroke="#fff" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="10 10" />
+                </svg>
+            </div>
+
+            <div class="relative z-10 h-full flex flex-col">
+                <div class="p-6 pt-12">
+                     <button onclick="switchScreen('home')" class="w-10 h-10 bg-white shadow-lg rounded-full mb-6 flex items-center justify-center"><i data-lucide="arrow-left" class="w-5 h-5 text-yellow-700"></i></button>
+                     <div class="bg-white p-5 rounded-2xl shadow-xl border border-yellow-200 flex items-center gap-4">
+                        <div class="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center flex-shrink-0 text-yellow-600 font-bold">
+                            <i data-lucide="bus" class="w-6 h-6"></i>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="font-bold text-base text-slate-900">Route 44 School Bus</h3>
+                            <p class="text-xs text-slate-500">Heading Home • Stopped</p>
+                        </div>
+                     </div>
+                </div>
+
+                <!-- Bus Element -->
+                <div id="bus-icon" class="absolute w-12 h-12 bg-yellow-500 rounded-lg border-[3px] border-white shadow-xl transition-all duration-[3000ms] ease-linear z-30 flex items-center justify-center text-white" style="left: 45px; top: 600px;">
+                    <i data-lucide="bus" class="w-6 h-6"></i>
+                </div>
+
+                <div class="mt-auto p-6 pb-24 grid grid-cols-2 gap-4">
+                    <button onclick="runBusSim()" class="w-full py-4 bg-yellow-500 text-white rounded-xl font-bold shadow-lg hover:bg-yellow-600 transition text-xs">Simulate Route</button>
+                    <button onclick="runBusDeviation()" class="w-full py-4 bg-red-500 text-white rounded-xl font-bold shadow-lg hover:bg-red-600 transition text-xs">Simulate Deviation</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- === NEW: STUDENT MODE WALK === -->
+        <div id="screen-student-walk" class="screen bg-emerald-50">
+            <div class="h-full flex flex-col p-6 pt-12 relative">
+                <div class="flex items-center gap-3 mb-10">
+                    <button onclick="switchScreen('home')" class="w-10 h-10 bg-white rounded-full shadow-sm flex items-center justify-center"><i data-lucide="arrow-left" class="w-5 h-5 text-emerald-900"></i></button>
+                    <div>
+                        <h2 class="font-bold text-emerald-900 text-lg">Walk Home</h2>
+                        <p class="text-xs text-emerald-700">Timer Active</p>
+                    </div>
+                </div>
+
+                <div class="flex-1 flex flex-col items-center justify-center pb-20">
+                     <div class="w-56 h-56 rounded-full border-8 border-emerald-200 flex flex-col items-center justify-center bg-white shadow-2xl mb-10 relative transition-all duration-500" id="walk-circle">
+                         <div class="absolute -top-2 left-1/2 transform -translate-x-1/2 bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-[10px] font-bold tracking-wide" id="walk-status">SAFE PASSAGE</div>
+                         <span class="text-4xl font-mono font-bold text-emerald-600 tracking-tighter transition-colors duration-500" id="walk-timer">15:00</span>
+                         <span class="text-[10px] text-slate-400 uppercase mt-1 font-bold">To Home</span>
+                     </div>
+                     
+                     <div class="bg-white p-5 rounded-2xl shadow-lg border border-emerald-100 w-full mb-4 transition-colors duration-500" id="walk-card">
+                         <div class="flex justify-between items-center mb-3">
+                             <div class="flex items-center gap-2">
+                                 <i data-lucide="map-pin" class="w-4 h-4 text-emerald-500"></i>
+                                 <span class="text-sm font-bold text-slate-700">Destination: Home</span>
+                             </div>
+                         </div>
+                         <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                             <div id="walk-bar" class="h-full bg-emerald-500 w-0 transition-all duration-1000"></div>
+                         </div>
+                         <p class="text-[11px] text-slate-400 mt-3 text-right font-medium">0.4 miles remaining</p>
+                     </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 pb-24">
+                    <button onclick="startWalkSim()" class="w-full py-4 bg-emerald-600 text-white rounded-2xl font-bold shadow-xl hover:bg-emerald-700 transition text-xs">Start Walk</button>
+                    <button onclick="runWalkDeviation()" class="w-full py-4 bg-red-500 text-white rounded-2xl font-bold shadow-xl hover:bg-red-600 transition text-xs">Simulate Deviation</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- === NEW: STUDENT MODE HANGOUT === -->
+        <div id="screen-student-hangout" class="screen bg-indigo-50">
+            <div class="h-full flex flex-col p-6 pt-12 relative">
+                <div class="flex items-center gap-3 mb-6">
+                    <button onclick="switchScreen('home')" class="w-10 h-10 bg-white rounded-full shadow-sm flex items-center justify-center"><i data-lucide="arrow-left" class="w-5 h-5 text-indigo-900"></i></button>
+                    <div>
+                        <h2 class="font-bold text-indigo-900 text-lg">Who are you with?</h2>
+                        <p class="text-xs text-indigo-700">Create a Safety Bubble</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-4 mb-6">
+                    <button onclick="toggleFriend(this)" class="aspect-square bg-white rounded-2xl flex flex-col items-center justify-center shadow-sm border-2 border-transparent hover:border-indigo-300 transition gap-2">
+                        <div class="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-xl">👴</div>
+                        <span class="text-xs font-bold text-slate-700">Paolo</span>
+                    </button>
+                    <button onclick="toggleFriend(this)" class="aspect-square bg-white rounded-2xl flex flex-col items-center justify-center shadow-sm border-2 border-transparent hover:border-indigo-300 transition gap-2">
+                        <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-xl">👨</div>
+                        <span class="text-xs font-bold text-slate-700">Alberto</span>
+                    </button>
+                    <button onclick="toggleFriend(this)" class="aspect-square bg-white rounded-2xl flex flex-col items-center justify-center shadow-sm border-2 border-transparent hover:border-indigo-300 transition gap-2">
+                        <div class="w-10 h-10 rounded-full bg-pink-100 flex items-center justify-center text-xl">🦍</div>
+                        <span class="text-xs font-bold text-slate-700">Justin</span>
+                    </button>
+                    <button class="aspect-square bg-white/50 rounded-2xl flex flex-col items-center justify-center border-2 border-dashed border-indigo-200 text-indigo-400">
+                        <i data-lucide="plus" class="w-6 h-6"></i>
+                    </button>
+                </div>
+
+                <!-- Location Map Section - TALLER -->
+                <div class="bg-indigo-50 rounded-2xl h-64 w-full mb-6 relative overflow-hidden border border-indigo-100 shadow-sm flex-shrink-0">
+                     <svg width="100%" height="100%" class="absolute inset-0 opacity-60">
+                        <pattern id="grid-hangout" width="30" height="30" patternUnits="userSpaceOnUse">
+                            <path d="M 30 0 L 0 0 0 30" fill="none" stroke="#cbd5e1" stroke-width="1"/>
+                        </pattern>
+                        <rect width="100%" height="100%" fill="url(#grid-hangout)" />
+                    </svg>
+                    <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
+                        <div class="bg-white p-1 rounded-full shadow-md mb-1 animate-bounce">
+                            <i data-lucide="map-pin" class="text-indigo-600 w-6 h-6 fill-current"></i>
+                        </div>
+                        <div class="bg-white/90 px-2 py-1 rounded text-[10px] font-bold text-indigo-900 shadow-sm border border-indigo-100">
+                            📍 Starbucks (300ft)
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-3xl shadow-sm border border-indigo-100">
+                    <h4 class="font-bold text-sm mb-2 text-indigo-900">Guardian Notification</h4>
+                    <p class="text-xs text-slate-500 mb-4">"Checking in at <span class="font-bold">Starbucks</span> with..."</p>
+                    <div id="hangout-list" class="flex gap-2 min-h-[24px]"></div>
+                </div>
+
+                <div class="mt-auto pb-24">
+                    <button onclick="showToast('Safety Bubble Created', 'success'); switchScreen('home')" class="w-full py-4 bg-indigo-600 text-white rounded-2xl font-bold shadow-xl hover:bg-indigo-700 transition">Check In</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- === SCREEN: CIRCLE (SOCIAL SAFETY) === -->
+        <div id="screen-circle" class="screen bg-slate-50">
+            <div class="h-full flex flex-col p-6 pt-12 relative">
+                <!-- Header -->
+                <div class="flex items-center justify-between mb-6 sticky top-0 z-10 bg-slate-50 py-2">
+                    <h2 class="font-bold text-2xl text-slate-900">Safety Circle</h2>
+                    <button class="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center border border-slate-100 text-slate-600">
+                        <i data-lucide="plus" class="w-5 h-5"></i>
+                    </button>
+                </div>
+
+                <!-- Map Header -->
+                <div class="bg-slate-200 rounded-3xl h-48 mb-6 relative overflow-hidden shadow-inner border border-slate-300">
+                    <!-- Fake Map -->
+                    <svg width="100%" height="100%" class="absolute inset-0 opacity-40">
+                        <pattern id="grid-circle" width="40" height="40" patternUnits="userSpaceOnUse">
+                            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#94a3b8" stroke-width="1"/>
+                        </pattern>
+                        <rect width="100%" height="100%" fill="url(#grid-circle)" />
+                    </svg>
+                    <!-- Pins -->
+                    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+                        <div class="w-12 h-12 bg-blue-100 rounded-full border-4 border-white shadow-lg flex items-center justify-center z-10 relative text-2xl">
+                            👨🏻
+                        </div>
+                        <div class="absolute -bottom-2 -right-2 bg-emerald-500 rounded-full p-1 border-2 border-white">
+                            <i data-lucide="shield" class="w-3 h-3 text-white fill-current"></i>
+                        </div>
+                    </div>
+                    <div class="absolute top-10 left-10">
+                        <div class="w-8 h-8 bg-pink-400 rounded-full border-2 border-white shadow-md flex items-center justify-center">
+                            <span class="text-[10px] font-bold text-white">M</span>
+                        </div>
+                    </div>
+                    <div class="absolute bottom-10 right-16">
+                        <div class="w-8 h-8 bg-indigo-400 rounded-full border-2 border-white shadow-md flex items-center justify-center">
+                            <span class="text-[10px] font-bold text-white">S</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Member List -->
+                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Members</h3>
+                <div class="space-y-3 mb-8">
+                    <!-- Member 1 -->
+                    <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-pink-100 flex items-center justify-center text-pink-600 font-bold">M</div>
+                            <div>
+                                <h4 class="font-bold text-slate-900 text-sm">Mom</h4>
+                                <p class="text-xs text-slate-500 flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> At Home • 100%</p>
+                            </div>
+                        </div>
+                        <button onclick="showToast('Ping sent to Mom', 'info')" class="text-xs font-bold text-[#4292c6] bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100">Ping</button>
+                    </div>
+                    <!-- Member 2 -->
+                    <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold">S</div>
+                            <div>
+                                <h4 class="font-bold text-slate-900 text-sm">Sister</h4>
+                                <p class="text-xs text-slate-500 flex items-center gap-1"><i data-lucide="car" class="w-3 h-3"></i> Driving • 45mph</p>
+                            </div>
+                        </div>
+                        <button onclick="showToast('Ping sent to Sister', 'info')" class="text-xs font-bold text-[#4292c6] bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100">Ping</button>
+                    </div>
+                </div>
+
+                <!-- Activity Feed -->
+                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Recent Activity</h3>
+                <div class="space-y-4 pl-4 border-l-2 border-slate-200">
+                    <div class="relative">
+                        <div class="absolute -left-[21px] top-1 w-3 h-3 bg-slate-300 rounded-full border-2 border-slate-50"></div>
+                        <p class="text-xs text-slate-600"><span class="font-bold text-slate-900">Sister</span> left work.</p>
+                        <p class="text-[10px] text-slate-400">10 mins ago</p>
+                    </div>
+                    <div class="relative">
+                        <div class="absolute -left-[21px] top-1 w-3 h-3 bg-emerald-400 rounded-full border-2 border-slate-50"></div>
+                        <p class="text-xs text-slate-600"><span class="font-bold text-slate-900">Mom</span> arrived at Home.</p>
+                        <p class="text-[10px] text-slate-400">2 hrs ago</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+         <!-- === NEW: VAULT SCREEN - REBUILT === -->
+        <div id="screen-vault" class="screen bg-slate-900 text-white">
+            <div class="h-full flex flex-col p-6 pt-12 relative">
+                 <div class="flex items-center gap-3 mb-8 sticky top-0 z-10 bg-slate-900 py-2">
+                     <button onclick="switchScreen('home')" class="w-10 h-10 bg-slate-800 rounded-full shadow-sm flex items-center justify-center hover:bg-slate-700 transition">
+                        <i data-lucide="arrow-left" class="w-5 h-5 text-white"></i>
+                    </button>
+                    <div>
+                        <h2 class="font-bold text-xl text-white">Evidence Vault</h2>
+                        <p class="text-xs text-slate-400">Encrypted & Locked</p>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="aspect-square bg-slate-800 rounded-2xl border border-slate-700 flex flex-col items-center justify-center relative overflow-hidden group">
+                        <div class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?ixlib=rb-1.2.1&auto=format&fit=crop&w=200&q=80')] bg-cover opacity-30 group-hover:opacity-50 transition"></div>
+                        <div class="relative z-10 flex flex-col items-center">
+                            <i data-lucide="lock" class="w-6 h-6 text-emerald-400 mb-2"></i>
+                            <span class="text-[10px] font-mono text-slate-300">IMG_2921.enc</span>
+                        </div>
+                    </div>
+                    <div class="aspect-square bg-slate-800 rounded-2xl border border-slate-700 flex flex-col items-center justify-center relative overflow-hidden group">
+                        <div class="absolute inset-0 bg-slate-700 opacity-50 group-hover:opacity-60 transition"></div>
+                         <div class="relative z-10 flex flex-col items-center">
+                            <i data-lucide="file-text" class="w-6 h-6 text-blue-400 mb-2"></i>
+                            <span class="text-[10px] font-mono text-slate-300">LOG_8821.txt</span>
+                        </div>
+                    </div>
+                    <div class="aspect-square bg-slate-800 rounded-2xl border border-slate-700 flex flex-col items-center justify-center relative overflow-hidden group">
+                        <div class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1494976388531-d1058494cdd8?ixlib=rb-1.2.1&auto=format&fit=crop&w=200&q=80')] bg-cover opacity-30 group-hover:opacity-50 transition"></div>
+                        <div class="relative z-10 flex flex-col items-center">
+                            <i data-lucide="lock" class="w-6 h-6 text-emerald-400 mb-2"></i>
+                            <span class="text-[10px] font-mono text-slate-300">IMG_2922.enc</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- === SCREEN: SETTINGS === -->
+        <div id="screen-settings" class="screen bg-slate-50">
+            <div class="h-full flex flex-col p-6 pt-16 pb-24">
+                <h2 class="text-2xl font-bold text-slate-900 mb-6">Settings</h2>
+                
+                <div class="space-y-6">
+                    <div>
+                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Account</h3>
+                        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                            <button class="w-full p-4 flex items-center justify-between hover:bg-slate-50 border-b border-slate-50">
+                                <div class="flex items-center gap-3">
+                                    <i data-lucide="user" class="w-5 h-5 text-slate-400"></i>
+                                    <span class="text-sm font-medium text-slate-700">Edit Profile</span>
+                                </div>
+                                <i data-lucide="chevron-right" class="w-4 h-4 text-slate-300"></i>
+                            </button>
+                            <button class="w-full p-4 flex items-center justify-between hover:bg-slate-50">
+                                <div class="flex items-center gap-3">
+                                    <i data-lucide="bell" class="w-5 h-5 text-slate-400"></i>
+                                    <span class="text-sm font-medium text-slate-700">Notifications</span>
+                                </div>
+                                <i data-lucide="chevron-right" class="w-4 h-4 text-slate-300"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Safety</h3>
+                        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                            <button class="w-full p-4 flex items-center justify-between hover:bg-slate-50 border-b border-slate-50">
+                                <div class="flex items-center gap-3">
+                                    <i data-lucide="users" class="w-5 h-5 text-slate-400"></i>
+                                    <span class="text-sm font-medium text-slate-700">Manage Circle</span>
+                                </div>
+                                <i data-lucide="chevron-right" class="w-4 h-4 text-slate-300"></i>
+                            </button>
+                            <button class="w-full p-4 flex items-center justify-between hover:bg-slate-50">
+                                <div class="flex items-center gap-3">
+                                    <i data-lucide="shield" class="w-5 h-5 text-slate-400"></i>
+                                    <span class="text-sm font-medium text-slate-700">Privacy & Data</span>
+                                </div>
+                                <i data-lucide="chevron-right" class="w-4 h-4 text-slate-300"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Support</h3>
+                        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                            <button class="w-full p-4 flex items-center justify-between hover:bg-slate-50">
+                                <div class="flex items-center gap-3">
+                                    <i data-lucide="help-circle" class="w-5 h-5 text-slate-400"></i>
+                                    <span class="text-sm font-medium text-slate-700">Get Help</span>
+                                </div>
+                                <i data-lucide="chevron-right" class="w-4 h-4 text-slate-300"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <button class="w-full py-3 text-red-500 text-sm font-medium hover:bg-red-50 rounded-xl transition">
+                        Log Out
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- === SCREEN: DYNAMIC MODE MENU === -->
+        <div id="screen-mode-menu" class="screen bg-slate-50">
+            <div class="h-full flex flex-col p-6 pt-12">
+                <!-- Header -->
+                <div class="flex items-center gap-3 mb-8 sticky top-0 z-10 bg-slate-50 py-2">
+                    <button onclick="switchScreen('home')" class="w-10 h-10 bg-white rounded-full shadow-sm flex items-center justify-center border border-slate-100 active:scale-95 transition">
+                        <i data-lucide="arrow-left" class="w-5 h-5 text-slate-700"></i>
+                    </button>
+                    <div>
+                        <h2 id="menu-title" class="font-bold text-xl text-slate-900">Mode Title</h2>
+                        <p id="menu-subtitle" class="text-xs text-slate-500">Mode Subtitle</p>
+                    </div>
+                </div>
+                
+                 <!-- Connected Apps (Dynamic) -->
+                <div id="connected-apps-container" class="hidden mb-6">
+                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Connected Apps</h3>
+                    <div class="flex gap-3" id="connected-apps-list">
+                         <!-- Injected dynamically -->
+                    </div>
+                </div>
+
+                <!-- Feature List Container -->
+                <div id="menu-list" class="space-y-4 pb-24">
+                    <!-- Javascript will inject buttons here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- === SCREEN: PREMIUM FEATURE DETAIL === -->
+        <div id="screen-premium" class="screen bg-slate-900 text-white">
+            <div class="h-full flex flex-col p-6 pt-12 relative overflow-hidden">
+                <!-- Background Glow -->
+                <div class="absolute top-0 right-0 w-64 h-64 bg-blue-500 opacity-20 rounded-full blur-[80px] pointer-events-none"></div>
+
+                <div class="flex items-center gap-3 mb-8 relative z-10">
+                    <button onclick="switchScreen('home')" class="w-10 h-10 bg-slate-800 rounded-full shadow-sm flex items-center justify-center hover:bg-slate-700 transition">
+                        <i data-lucide="arrow-left" class="w-5 h-5 text-white"></i>
+                    </button>
+                    <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Premium</span>
+                </div>
+
+                <div class="flex-1 relative z-10">
+                    <div id="premium-icon-container" class="w-20 h-20 rounded-2xl bg-slate-800 flex items-center justify-center mb-6">
+                        <!-- Icon injected -->
+                    </div>
+                    <h2 id="premium-title" class="text-3xl font-bold mb-4">Feature Title</h2>
+                    <p id="premium-desc" class="text-slate-400 leading-relaxed mb-8">Feature description goes here.</p>
+                    
+                    <div class="space-y-4">
+                        <div class="flex items-start gap-4">
+                            <div class="w-6 h-6 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center mt-1"><i data-lucide="check" class="w-3 h-3"></i></div>
+                            <div>
+                                <h4 class="font-bold text-sm">Professional Grade</h4>
+                                <p class="text-xs text-slate-500">Used by security professionals.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-4">
+                            <div class="w-6 h-6 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center mt-1"><i data-lucide="check" class="w-3 h-3"></i></div>
+                            <div>
+                                <h4 class="font-bold text-sm">24/7 Availability</h4>
+                                <p class="text-xs text-slate-500">Servers never sleep.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pb-12 relative z-10">
+                    <button onclick="openPaySheet()" class="w-full py-4 bg-white text-slate-900 font-bold rounded-xl shadow-lg hover:bg-slate-200 transition">
+                        Unlock Feature ($9.99/mo)
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- === SCREEN: GUARDIAN PREVIEW SCREEN === -->
+        <div id="screen-guardian" class="screen bg-slate-900 text-white">
+             <div class="h-full flex flex-col relative">
+                 <!-- Map Background -->
+                <div class="absolute inset-0 z-0 opacity-50">
+                    <svg width="100%" height="100%">
+                        <pattern id="grid-guardian" width="40" height="40" patternUnits="userSpaceOnUse">
+                            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#475569" stroke-width="1"/>
+                        </pattern>
+                        <rect width="100%" height="100%" fill="url(#grid-guardian)" />
+                    </svg>
+                </div>
+
+                 <!-- Header Overlay -->
+                 <div class="relative z-10 p-6 pt-12 flex justify-between items-center bg-gradient-to-b from-slate-900 to-transparent pb-20">
+                     <div>
+                         <h2 class="text-2xl font-bold">Mom's View</h2>
+                         <p class="text-xs text-emerald-400 flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Live Connection</p>
+                     </div>
+                     <button onclick="switchScreen('home')" class="bg-white/10 backdrop-blur p-2 rounded-full hover:bg-white/20"><i data-lucide="x" class="w-5 h-5"></i></button>
+                 </div>
+
+                 <!-- Gabe's Pin -->
+                 <div class="absolute top-1/3 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center z-10">
+                     <div class="w-16 h-16 rounded-full border-4 border-white shadow-xl bg-blue-100 flex items-center justify-center text-3xl relative">
+                         👨🏻
+                         <div class="absolute -bottom-1 -right-1 bg-green-500 rounded-full p-1 border-2 border-white"><i data-lucide="battery-charging" class="w-3 h-3 text-white"></i></div>
+                     </div>
+                     <div class="bg-white/90 backdrop-blur text-slate-900 px-3 py-1 rounded-lg text-xs font-bold mt-2 shadow-lg">
+                         Gabe • 85% Battery
+                     </div>
+                 </div>
+
+                 <!-- Bottom Sheet -->
+                 <div class="mt-auto bg-white text-slate-900 rounded-t-[2rem] p-6 relative z-10 min-h-[300px]">
+                     <div class="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-6"></div>
+                     
+                     <div class="flex justify-between items-start mb-6">
+                         <div>
+                             <h3 class="font-bold text-lg">Status: Active</h3>
+                             <p class="text-sm text-slate-500">Walking Home • 3 mins ago</p>
+                         </div>
+                         <div class="text-right">
+                             <div class="text-xl font-bold text-emerald-600">1.2 mph</div>
+                             <p class="text-xs text-slate-400">Speed</p>
+                         </div>
+                     </div>
+
+                     <div class="space-y-3">
+                         <div class="flex items-center gap-4 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                             <div class="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center text-yellow-600"><i data-lucide="map-pin" class="w-5 h-5"></i></div>
+                             <div class="flex-1">
+                                 <div class="text-xs font-bold text-slate-400 uppercase">Destination</div>
+                                 <div class="text-sm font-bold text-slate-900">Home (123 Maple Dr)</div>
+                             </div>
+                             <div class="text-right">
+                                 <div class="text-xs font-bold text-emerald-600">ETA</div>
+                                 <div class="text-sm font-bold text-slate-900">4:15 PM</div>
+                             </div>
+                         </div>
+                         
+                         <div class="flex items-center gap-4 p-3 bg-red-50 rounded-xl border border-red-100">
+                             <div class="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center text-red-600"><i data-lucide="bell" class="w-5 h-5"></i></div>
+                             <div class="flex-1">
+                                 <div class="text-sm font-bold text-red-700">Emergency Override</div>
+                                 <div class="text-xs text-red-400">Tap to listen to live audio</div>
+                             </div>
+                         </div>
+                     </div>
+                 </div>
+            </div>
+        </div>
+
+        <!-- === SCREEN 2: ACTIVE TIMER (Generic) === -->
+        <div id="screen-active-timer" class="screen bg-slate-900 text-white flex flex-col items-center justify-center p-8">
+            <div class="absolute top-12 left-0 w-full flex justify-center">
+                <div class="bg-slate-800/80 backdrop-blur px-4 py-1.5 rounded-full flex items-center gap-2 border border-slate-700">
+                    <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                    <span class="text-[10px] font-bold tracking-wide text-emerald-400">GPS MONITORING LIVE</span>
+                </div>
+            </div>
+            
+            <div class="relative mb-16 mt-8">
+                <div class="absolute inset-0 bg-emerald-500 rounded-full blur-2xl opacity-20 animate-pulse-slow"></div>
+                <!-- Circular Progress SVG -->
+                <svg class="w-72 h-72 transform -rotate-90 relative z-10">
+                    <circle cx="144" cy="144" r="136" stroke="#1e293b" stroke-width="8" fill="none" />
+                    <circle cx="144" cy="144" r="136" stroke="#10b981" stroke-width="8" fill="none" stroke-dasharray="854" stroke-dashoffset="100" stroke-linecap="round" />
+                </svg>
+                
+                <div class="absolute inset-0 flex flex-col items-center justify-center z-20">
+                    <span class="text-6xl font-mono font-bold text-white tracking-tighter" id="main-countdown">29:59</span>
+                    <span class="text-xs text-slate-400 mt-2 uppercase tracking-widest font-medium">Until Alert</span>
+                </div>
+            </div>
+
+            <div class="space-y-4 w-full px-4">
+                <button onclick="switchScreen('home', 'Check-in Confirmed. Timer Stopped.')" class="w-full py-4 bg-emerald-500 hover:bg-emerald-400 rounded-2xl font-bold text-white transition shadow-lg shadow-emerald-900/50 flex items-center justify-center gap-2 group">
+                    <i data-lucide="check-circle-2" class="w-5 h-5 group-hover:scale-110 transition"></i>
+                    I'M SAFE
+                </button>
+                <button onclick="showToast('SOS Triggered: Police Notified', 'error');" class="w-full py-4 bg-slate-800 border border-slate-700 text-red-400 rounded-2xl font-bold text-xs hover:bg-red-900/20 hover:border-red-500/50 transition flex items-center justify-center gap-2">
+                    <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+                    TRIGGER SOS
+                </button>
+            </div>
+        </div>
+
+        <!-- === SCREEN 3: DATING MODE (Fake Call) === -->
+        <div id="screen-dating" class="screen bg-slate-900 text-white">
+            <div class="h-full flex flex-col p-6 relative">
+                <!-- Header -->
+                <div class="flex items-center gap-3 mb-8 mt-8 absolute top-0 left-6 right-6 z-20">
+                    <button onclick="switchScreen('home')" class="p-2 bg-slate-800 rounded-full hover:bg-slate-700 transition"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
+                    <div>
+                        <h2 class="font-bold text-lg">Dating Mode</h2>
+                        <p class="text-xs text-slate-400">Monitoring meeting with "Gabe"</p>
+                    </div>
+                </div>
+
+                <!-- Idle State - CENTERED FIX -->
+                <div id="fc-idle" class="h-full w-full flex flex-col justify-center items-center pb-20">
+                    <div class="p-6 bg-slate-800/50 rounded-3xl border border-slate-700 w-full backdrop-blur-sm mb-12">
+                        <div class="flex items-center gap-3 mb-3">
+                            <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                            <span class="text-xs font-bold text-green-400 tracking-wide">PROTECTION ACTIVE</span>
+                        </div>
+                        <p class="text-sm text-slate-400 leading-relaxed">If your phone disconnects or leaves the 500ft geofence, we will alert your sister automatically.</p>
+                    </div>
+
+                    <div class="text-center w-full flex flex-col items-center">
+                        <button onclick="triggerFakeCall()" class="w-48 h-48 rounded-full bg-red-500/10 border border-red-500 text-red-500 flex flex-col items-center justify-center hover:bg-red-500 hover:text-white transition-all duration-300 group shadow-[0_0_40px_-10px_rgba(239,68,68,0.3)] hover:shadow-[0_0_60px_-10px_rgba(239,68,68,0.6)]">
+                            <i data-lucide="phone-call" class="w-12 h-12 mb-3 transition-transform group-hover:rotate-12"></i>
+                            <span class="text-sm font-bold uppercase tracking-wide">Get Out</span>
+                        </button>
+                        <p class="text-xs text-slate-500 mt-8 font-medium">Tap to trigger discreet fake call (3s delay)</p>
+                    </div>
+                </div>
+
+                <!-- Incoming Call State -->
+                <div id="fc-incoming" class="hidden absolute inset-0 bg-slate-900 bg-[url('https://images.unsplash.com/photo-1558591710-4b4a1ae0f04d?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60')] bg-cover bg-center z-50">
+                    <div class="absolute inset-0 bg-black/60 backdrop-blur-md"></div>
+                    <div class="relative z-10 h-full flex flex-col justify-between p-10 pt-24">
+                        <div class="flex flex-col items-center">
+                            <div class="w-28 h-28 bg-slate-200 rounded-full flex items-center justify-center mb-6 shadow-2xl">
+                                <i data-lucide="home" class="w-12 h-12 text-slate-900"></i>
+                            </div>
+                            <h2 class="text-3xl font-bold text-white">Landlord</h2>
+                            <p class="text-lg text-white/70 mt-1">Mobile</p>
+                        </div>
+                        <div class="flex justify-between items-end mb-12 px-4">
+                            <button onclick="resetFakeCall()" class="flex flex-col items-center gap-3 group">
+                                <div class="w-20 h-20 bg-red-500 rounded-full flex items-center justify-center text-3xl shadow-lg group-active:scale-95 transition">✕</div>
+                                <span class="text-sm font-medium">Decline</span>
+                            </button>
+                            <button onclick="resetFakeCall()" class="flex flex-col items-center gap-3 group">
+                                <div class="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center text-3xl shadow-lg group-active:scale-95 transition">📞</div>
+                                <span class="text-sm font-medium">Accept</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- === SCREEN 4: MARKETPLACE (Evidence Locker) === -->
+        <div id="screen-market" class="screen bg-black text-white">
+            <!-- Viewfinder UI -->
+            <div class="absolute inset-0 z-0">
+                <img src="https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80" class="w-full h-full object-cover opacity-60">
+                <!-- Grid Overlay -->
+                <div class="absolute inset-0 opacity-20" style="background-image: linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px); background-size: 33% 33%;"></div>
+            </div>
+            
+            <div class="relative z-10 h-full flex flex-col justify-between p-6 pt-12">
+                <div class="flex justify-between items-center">
+                    <button onclick="switchScreen('home')" class="w-10 h-10 bg-black/40 rounded-full backdrop-blur flex items-center justify-center"><i data-lucide="x" class="w-5 h-5"></i></button>
+                    <div class="px-3 py-1 bg-black/40 backdrop-blur rounded-full flex items-center gap-2">
+                        <div class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                        <span class="text-[10px] font-bold">SECURE VAULT</span>
+                    </div>
+                    <div class="w-10"></div> <!-- Spacer -->
+                </div>
+
+                <div class="flex flex-col items-center gap-6 pb-12">
+                     <div class="bg-black/40 backdrop-blur px-4 py-2 rounded-lg">
+                        <p class="text-xs text-center text-white font-medium">Align License Plate or Face</p>
+                    </div>
+                    <button onclick="captureEvidence()" class="w-20 h-20 rounded-full border-[5px] border-white flex items-center justify-center shadow-2xl">
+                        <div class="w-16 h-16 bg-white rounded-full active:scale-90 transition duration-150"></div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Success Overlay -->
+            <div id="market-success" class="hidden absolute inset-0 bg-emerald-600 z-50 flex flex-col items-center justify-center text-center p-8">
+                <div class="w-24 h-24 bg-white rounded-full flex items-center justify-center mb-6 shadow-xl animate-bounce">
+                    <i data-lucide="lock" class="w-10 h-10 text-emerald-600"></i>
+                </div>
+                <h2 class="text-3xl font-bold">Evidence Secured</h2>
+                <p class="text-base text-white/90 mt-2 mb-10">Image encrypted and uploaded to cloud vault.</p>
+                <button onclick="switchScreen('home')" class="px-10 py-4 bg-white text-emerald-800 font-bold rounded-2xl shadow-lg active:scale-95 transition">Done</button>
+            </div>
+        </div>
+
+        <!-- === SCREEN 5: RIDE MODE (Map) === -->
+        <div id="screen-ride" class="screen bg-slate-50">
+            <!-- Map Background (SVG) -->
+            <div class="absolute inset-0 z-0 opacity-60">
+                <svg width="100%" height="100%">
+                    <defs>
+                        <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#cbd5e1" stroke-width="1"/>
+                        </pattern>
+                    </defs>
+                    <rect width="100%" height="100%" fill="url(#grid)" />
+                    <!-- Route -->
+                    <path d="M 50 700 L 180 400 L 300 100" stroke="#94a3b8" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+                    <path d="M 50 700 L 180 400 L 300 100" stroke="#3b82f6" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="10 10" />
+                </svg>
+            </div>
+
+            <div class="relative z-10 h-full flex flex-col">
+                <div class="p-6 pt-12">
+                     <button onclick="switchScreen('home')" class="w-10 h-10 bg-white shadow-lg rounded-full mb-6 flex items-center justify-center"><i data-lucide="arrow-left" class="w-5 h-5 text-slate-700"></i></button>
+                     
+                     <div class="bg-white p-5 rounded-2xl shadow-xl border border-slate-100 flex items-center gap-4">
+                        <div class="w-12 h-12 bg-indigo-50 rounded-full flex items-center justify-center flex-shrink-0">
+                            <i data-lucide="navigation" class="w-6 h-6 text-indigo-600"></i>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="font-bold text-base text-slate-900">Trip to Airport</h3>
+                            <div class="flex items-center gap-2 mt-0.5">
+                                <span class="text-xs font-bold text-white bg-black px-1.5 rounded">UBER</span>
+                                <span class="text-xs text-slate-500">Black • Toyota Camry</span>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-sm font-bold text-slate-900">10:45</div>
+                            <div class="text-[10px] text-slate-400">ETA</div>
+                        </div>
+                     </div>
+                     
+                     <!-- Sync Indicator -->
+                     <div class="flex justify-center mt-4">
+                         <div class="bg-black/80 backdrop-blur px-3 py-1.5 rounded-full flex items-center gap-2 shadow-lg">
+                             <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                             <span class="text-[10px] font-bold text-white">Synced with Uber</span>
+                         </div>
+                     </div>
+
+                     <!-- Connected Services -->
+                    <div class="flex justify-center gap-4 mt-6">
+                        <div class="flex flex-col items-center gap-1 opacity-50 hover:opacity-100 transition">
+                            <div class="w-10 h-10 bg-black rounded-xl flex items-center justify-center text-white"><i data-lucide="car" class="w-5 h-5"></i></div>
+                            <span class="text-[9px] font-bold text-slate-400">Uber</span>
+                        </div>
+                        <div class="flex flex-col items-center gap-1 opacity-100 scale-110">
+                            <div class="w-10 h-10 bg-pink-600 rounded-xl flex items-center justify-center text-white shadow-lg border-2 border-white"><i data-lucide="car" class="w-5 h-5"></i></div>
+                            <span class="text-[9px] font-bold text-slate-600">Lyft</span>
+                        </div>
+                         <div class="flex flex-col items-center gap-1 opacity-50 hover:opacity-100 transition">
+                            <div class="w-10 h-10 bg-green-500 rounded-xl flex items-center justify-center text-white"><i data-lucide="map" class="w-5 h-5"></i></div>
+                            <span class="text-[9px] font-bold text-slate-400">Maps</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Car Element -->
+                <div id="ride-car" class="absolute w-8 h-8 bg-indigo-600 rounded-full border-[3px] border-white shadow-xl transition-all duration-[2000ms] ease-linear z-10 flex items-center justify-center" style="left: 45px; top: 690px;">
+                    <i data-lucide="car" class="w-4 h-4 text-white"></i>
+                </div>
+
+                <div class="mt-auto p-6 pb-24">
+                    <div class="flex gap-3">
+                         <button onclick="runRideSim('safe')" class="flex-1 py-4 bg-white border-2 border-slate-100 rounded-xl text-xs font-bold text-slate-600 hover:border-slate-300 transition shadow-sm">Simulate Safe</button>
+                         <button onclick="runRideSim('danger')" class="flex-1 py-4 bg-white border-2 border-red-100 rounded-xl text-xs font-bold text-red-600 hover:border-red-200 transition shadow-sm">Simulate Deviate</button>
+                    </div>
+                </div>
+
+                <!-- Alert Overlay -->
+                <div id="ride-alert" class="absolute bottom-0 left-0 right-0 bg-red-600 text-white p-8 rounded-t-[2.5rem] transform translate-y-full transition-transform duration-300 z-30 shadow-[0_-10px_40px_rgba(0,0,0,0.3)]">
+                    <div class="w-12 h-1 bg-white/20 rounded-full mx-auto mb-6"></div>
+                    <div class="flex items-center gap-4 mb-2">
+                        <div class="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+                            <i data-lucide="alert-triangle" class="w-6 h-6 text-white"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-xl">Route Deviation</h3>
+                            <p class="text-sm text-white/80">Active Monitoring</p>
+                        </div>
+                    </div>
+                    <p class="text-sm opacity-90 mb-8 mt-4 leading-relaxed bg-red-700/50 p-4 rounded-xl border border-red-500">Driver deviated 0.5mi from optimal route. We are checking your status.</p>
+                    <button onclick="resetRideSim()" class="w-full py-4 bg-white text-red-600 font-bold rounded-xl shadow-lg active:scale-95 transition">I'm Safe - Dismiss</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+        <script>
+            // Initialize Lucide Icons
+            if (window.lucide) {
+                lucide.createIcons();
+            }
+
+            // --- TOAST NOTIFICATION SYSTEM ---
+            function showToast(message, type = 'info') {
+                const container = document.getElementById('toast-container');
+                const toast = document.createElement('div');
+                
+                let bgClass = 'bg-slate-800 text-white';
+                let icon = 'info';
+                
+                if (type === 'success') { bgClass = 'bg-emerald-600 text-white'; icon = 'check-circle'; }
+                if (type === 'error') { bgClass = 'bg-red-500 text-white'; icon = 'alert-triangle'; }
+
+                toast.className = `toast-notification ${bgClass} px-4 py-3 rounded-full shadow-xl flex items-center gap-3 min-w-[200px] justify-center`;
+                toast.innerHTML = `
+                    <i data-lucide="${icon}" class="w-4 h-4"></i>
+                    <span class="text-xs font-bold">${message}</span>
+                `;
+
+                container.appendChild(toast);
+                lucide.createIcons(); // Re-init icons for the new toast
+
+                // Remove after 3s
+                setTimeout(() => {
+                    toast.style.opacity = '0';
+                    toast.style.transform = 'translateY(-10px) translateX(-50%)';
+                    setTimeout(() => toast.remove(), 300);
+                }, 3000);
+            }
+
+            // --- HAMBURGER MENU LOGIC ---
+            function toggleMenu() {
+                const drawer = document.getElementById('menu-drawer');
+                drawer.classList.toggle('open');
+            }
+
+            // --- PAYMENT SHEET LOGIC ---
+            function openPaySheet() {
+                document.getElementById('pay-sheet').classList.add('open');
+                toggleMenu(); // Close menu if open
+            }
+
+            function closePaySheet() {
+                document.getElementById('pay-sheet').classList.remove('open');
+            }
+
+            function selectPlan(plan) {
+                const monthly = document.getElementById('plan-monthly');
+                const single = document.getElementById('plan-single');
+                const payAmount = document.getElementById('pay-amount');
+                const dotMonthly = document.getElementById('dot-monthly');
+                const dotSingle = document.getElementById('dot-single');
+
+                if (plan === 'monthly') {
+                    monthly.classList.add('border-blue-500', 'bg-blue-50');
+                    monthly.classList.remove('border-slate-200', 'bg-white');
+                    single.classList.remove('border-blue-500', 'bg-blue-50');
+                    single.classList.add('border-slate-200', 'bg-white');
+                    
+                    dotMonthly.className = 'w-2.5 h-2.5 rounded-full bg-blue-500';
+                    dotSingle.className = 'w-2.5 h-2.5 rounded-full bg-transparent';
+                    
+                    payAmount.innerText = '$9.99';
+                } else {
+                    single.classList.add('border-blue-500', 'bg-blue-50');
+                    single.classList.remove('border-slate-200', 'bg-white');
+                    monthly.classList.remove('border-blue-500', 'bg-blue-50');
+                    monthly.classList.add('border-slate-200', 'bg-white');
+                    
+                    dotSingle.className = 'w-2.5 h-2.5 rounded-full bg-blue-500';
+                    dotMonthly.className = 'w-2.5 h-2.5 rounded-full bg-transparent';
+                    
+                    payAmount.innerText = '$0.99';
+                }
+            }
+
+            function processPayment() {
+                const btn = document.getElementById('pay-btn');
+                const txt = document.getElementById('pay-text');
+                const spin = document.getElementById('pay-spinner');
+
+                txt.classList.add('opacity-0');
+                spin.classList.remove('hidden');
+
+                setTimeout(() => {
+                    closePaySheet();
+                    showToast('Premium Activated!', 'success');
+                    // Reset button state
+                    setTimeout(() => {
+                        txt.classList.remove('opacity-0');
+                        spin.classList.add('hidden');
+                    }, 500);
+                }, 2000);
+            }
+
+            // --- MODE CONFIGURATION ---
+            const modeMenus = {
+                dating: {
+                    title: "Dating Mode",
+                    subtitle: "Safe dates & meetings",
+                    connectedApps: [
+                         { icon: "flame", bg: "bg-pink-500", color: "text-white" },
+                         { icon: "message-circle", bg: "bg-yellow-400", color: "text-white" },
+                         { icon: "heart", bg: "bg-white", color: "text-black", isText: true, text: "H" } // Hinge shim
+                    ],
+                    features: [
+                        { icon: "phone-call", title: "'Get Out' Protocol", desc: "Trigger a fake emergency call", action: "switchScreen('dating')" },
+                        { icon: "clock", title: "Date Timer", desc: "Set a safety check-in", action: "switchScreen('active-timer')" }
+                    ]
+                },
+                ride: {
+                    title: "Ride Mode",
+                    subtitle: "Solo travel protection",
+                    connectedApps: [
+                         { icon: "car", bg: "bg-black", color: "text-white", isText: true, text: "Uber" },
+                         { icon: "car", bg: "bg-pink-600", color: "text-white", isText: true, text: "Lyft" },
+                         { icon: "map", bg: "bg-green-500", color: "text-white" }
+                    ],
+                    features: [
+                        { icon: "map", title: "Route Monitor", desc: "Detect off-route deviations", action: "switchScreen('ride')" },
+                        { icon: "share-2", title: "Share Live Trip", desc: "Send tracking link to contacts", action: "showToast('Trip Link Copied', 'success')" }
+                    ]
+                },
+                market: {
+                    title: "Marketplace Mode",
+                    subtitle: "Secure buying & selling",
+                    connectedApps: [
+                         { icon: "store", bg: "bg-blue-600", color: "text-white" }, // FB Marketplace
+                         { icon: "tag", bg: "bg-purple-700", color: "text-white", isText: true, text: "CL" }, // Craigslist
+                         { icon: "shopping-cart", bg: "bg-green-500", color: "text-white", isText: true, text: "OU" } // OfferUp
+                    ],
+                    features: [
+                        { icon: "camera", title: "Evidence Locker", desc: "Securely upload photos", action: "switchScreen('market')" },
+                        { icon: "lock", title: "View Evidence Vault", desc: "Access encrypted files", action: "switchScreen('vault')" },
+                        { icon: "shield-check", title: "Vouch Badge", desc: "Show verifying badge to seller", action: "showToast('Verified Badge Displayed', 'success')" }
+                    ]
+                },
+                student: {
+                    title: "Student Mode",
+                    subtitle: "Campus & Commute Safety",
+                    features: [
+                        { icon: "bus", title: "School Bus Mode", desc: "Track route home", action: "switchScreen('student-bus')" },
+                        { icon: "map-pin", title: "Walking Home", desc: "Safe passage timer", action: "switchScreen('student-walk')" },
+                        { icon: "users", title: "Hanging Out", desc: "Log who you are with", action: "switchScreen('student-hangout')" }
+                    ]
+                }
+            };
+
+            const premiumFeatures = {
+                dispatch: { title: "Live 911 Dispatch", desc: "Connect directly to 911 dispatch centers via API, bypassing call queues and transmitting your exact GPS and profile.", icon: "phone-call", color: "text-red-400" },
+                guardian: { title: "Guardian Dashboard", desc: "Allow trusted contacts to view your live status, battery level, and route history in a private dashboard.", icon: "users", color: "text-emerald-400" },
+                badge: { title: "Vouched ID Badge", desc: "Get a verified 'Safe User' badge to display on dating apps and marketplaces, increasing trust.", icon: "shield-check", color: "text-blue-400" }
+            };
+
+            // --- NAVIGATION LOGIC ---
+            function openModeMenu(mode) {
+                const config = modeMenus[mode];
+                if (!config) return;
+
+                document.getElementById('menu-title').innerText = config.title;
+                document.getElementById('menu-subtitle').innerText = config.subtitle;
+                
+                // Handle Connected Apps visibility and generation
+                const appsContainer = document.getElementById('connected-apps-container');
+                const appsList = document.getElementById('connected-apps-list');
+                appsList.innerHTML = ''; // Clear previous
+
+                if (config.connectedApps && config.connectedApps.length > 0) {
+                    appsContainer.classList.remove('hidden');
+                    config.connectedApps.forEach(app => {
+                        let content = `<i data-lucide="${app.icon}" class="w-6 h-6"></i>`;
+                        if(app.isText) content = `<span class="font-bold text-xs">${app.text}</span>`;
+                        
+                        const div = document.createElement('div');
+                        div.className = `w-12 h-12 rounded-xl ${app.bg} flex items-center justify-center ${app.color} shadow-md`;
+                        div.innerHTML = content;
+                        appsList.appendChild(div);
+                    });
+                } else {
+                    appsContainer.classList.add('hidden');
+                }
+                
+                const list = document.getElementById('menu-list');
+                list.innerHTML = ''; // Clear existing
+
+                config.features.forEach(feat => {
+                    const btn = document.createElement('button');
+                    btn.className = "w-full p-4 bg-white rounded-2xl border border-slate-100 shadow-sm active:scale-95 transition text-left group flex items-center gap-4 hover:border-blue-100";
+                    btn.onclick = new Function(feat.action); // converting string to function
+                    btn.innerHTML = `
+                        <div class="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center text-slate-600 group-hover:bg-blue-50 group-hover:text-blue-600 transition">
+                            <i data-lucide="${feat.icon}" class="w-6 h-6"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-slate-900 text-sm">${feat.title}</h4>
+                            <p class="text-xs text-slate-500">${feat.desc}</p>
+                        </div>
+                        <i data-lucide="chevron-right" class="w-4 h-4 text-slate-300 ml-auto group-hover:text-blue-300"></i>
+                    `;
+                    list.appendChild(btn);
+                });
+
+                lucide.createIcons(); // Refresh icons
+                switchScreen('mode-menu');
+            }
+
+            function openPremium(key) {
+                const data = premiumFeatures[key];
+                if(!data) return;
+
+                document.getElementById('premium-title').innerText = data.title;
+                document.getElementById('premium-desc').innerText = data.desc;
+                
+                const iconContainer = document.getElementById('premium-icon-container');
+                iconContainer.innerHTML = `<i data-lucide="${data.icon}" class="w-8 h-8 ${data.color}"></i>`;
+                
+                toggleMenu(); // Close menu
+                switchScreen('premium');
+                lucide.createIcons();
+            }
+            
+            function openGuardianPreview() {
+                toggleMenu();
+                switchScreen('guardian');
+            }
+
+            function switchScreen(screenId, toastMsg = null) {
+                document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
+                const target = document.getElementById(`screen-${screenId}`);
+                if (target) target.classList.add('active');
+                
+                // Update Global Nav State
+                document.querySelectorAll('.nav-btn').forEach(btn => {
+                    btn.classList.remove('text-[#4292c6]');
+                    btn.classList.add('text-slate-400');
+                });
+                
+                let navId = '';
+                if(screenId === 'home') navId = 'nav-home';
+                if(screenId === 'active-timer') navId = 'nav-active';
+                if(screenId === 'circle') navId = 'nav-circle';
+                if(screenId === 'settings') navId = 'nav-settings';
+                
+                const activeBtn = document.getElementById(navId);
+                if(activeBtn) {
+                    activeBtn.classList.remove('text-slate-400');
+                    activeBtn.classList.add('text-[#4292c6]');
+                }
+
+                // Status Bar Color Logic
+                const statusBarTexts = document.querySelectorAll('.status-text, .status-icons');
+                if (screenId === 'active-timer' || screenId === 'market' || screenId === 'dating' || screenId === 'premium' || screenId === 'vault' || screenId === 'guardian') {
+                    statusBarTexts.forEach(el => el.classList.remove('text-slate-900'));
+                    statusBarTexts.forEach(el => el.classList.add('text-white'));
+                } else {
+                    statusBarTexts.forEach(el => el.classList.remove('text-white'));
+                    statusBarTexts.forEach(el => el.classList.add('text-slate-900'));
+                }
+
+                if (toastMsg) showToast(toastMsg, 'success');
+
+                // Reset specific states
+                if(screenId !== 'dating') resetFakeCall();
+                if(screenId !== 'market') document.getElementById('market-success').classList.add('hidden');
+                if (screenId === 'student-bus') resetBusSim(); // Reset bus position when opening bus screen
+                
+                // Close menu if open
+                document.getElementById('menu-drawer').classList.remove('open');
+            }
+
+            // --- DATING MODE LOGIC ---
+            function triggerFakeCall() {
+                const btn = document.querySelector('#fc-idle button');
+                
+                showToast('Discreet signal sent...', 'info');
+                btn.classList.add('animate-pulse');
+
+                setTimeout(() => {
+                    document.getElementById('fc-incoming').classList.remove('hidden');
+                    btn.classList.remove('animate-pulse');
+                }, 3000);
+            }
+
+            function resetFakeCall() {
+                document.getElementById('fc-incoming').classList.add('hidden');
+            }
+
+            // --- MARKETPLACE LOGIC ---
+            function captureEvidence() {
+                showToast('Encrypting...', 'info');
+                setTimeout(() => {
+                    document.getElementById('market-success').classList.remove('hidden');
+                    showToast('Upload Complete', 'success');
+                }, 1000);
+            }
+
+            // --- RIDE SIM LOGIC ---
+            function runRideSim(mode) {
+                const car = document.getElementById('ride-car');
+                const alertBox = document.getElementById('ride-alert');
+
+                // Reset
+                car.style.transition = 'none';
+                car.style.left = '45px';
+                car.style.top = '690px';
+                alertBox.classList.remove('translate-y-0');
+                alertBox.classList.add('translate-y-full');
+
+                // Force reflow
+                void car.offsetWidth;
+                car.style.transition = 'all 2s linear';
+
+                if (mode === 'safe') {
+                    car.style.left = '145px';
+                    car.style.top = '400px';
+                    setTimeout(() => {
+                        car.style.left = '300px';
+                        car.style.top = '100px';
+                        showToast('Destination Reached', 'success');
+                    }, 2000);
+                } else {
+                    car.style.left = '145px';
+                    car.style.top = '400px';
+                    setTimeout(() => {
+                        car.style.left = '300px';
+                        car.style.top = '400px'; // Deviate right
+                        
+                        setTimeout(() => {
+                            alertBox.classList.remove('translate-y-full');
+                            alertBox.classList.add('translate-y-0');
+                            showToast('Route Deviation Detected', 'error');
+                        }, 500);
+                    }, 2000);
+                }
+            }
+
+            function resetRideSim() {
+                const car = document.getElementById('ride-car');
+                const alertBox = document.getElementById('ride-alert');
+                alertBox.classList.add('translate-y-full');
+                car.style.transition = 'all 0.5s';
+                car.style.left = '45px';
+                car.style.top = '690px';
+            }
+
+            // --- NEW STUDENT DEMO LOGIC ---
+            
+            // 1. Bus Sim
+            function runBusSim() {
+                const bus = document.getElementById('bus-icon');
+                
+                // Ensure bus is reset first
+                bus.style.transition = 'none';
+                bus.style.left = '45px';
+                bus.style.top = '600px';
+                
+                void bus.offsetWidth; // Force Reflow
+                
+                // Start Multi-Stage Animation
+                bus.style.transition = 'left 3s linear, top 3s linear';
+                bus.style.left = '145px';
+                bus.style.top = '400px';
+                
+                setTimeout(() => {
+                    // Second stage
+                    bus.style.transition = 'left 3s linear, top 3s linear';
+                    bus.style.left = '300px';
+                    bus.style.top = '100px';
+                    showToast('Bus Route Monitored', 'success');
+                }, 3000);
+            }
+            
+            function runBusDeviation() {
+                 const bus = document.getElementById('bus-icon');
+                
+                // Ensure bus is reset first
+                bus.style.transition = 'none';
+                bus.style.left = '45px';
+                bus.style.top = '600px';
+                
+                void bus.offsetWidth; // Force Reflow
+                
+                // Start Multi-Stage Animation
+                bus.style.transition = 'left 3s linear, top 3s linear';
+                bus.style.left = '145px';
+                bus.style.top = '400px';
+                
+                setTimeout(() => {
+                    // Deviation stage
+                    bus.style.transition = 'left 2s linear, top 2s linear';
+                    bus.style.left = '300px';
+                    bus.style.top = '400px'; // Veering off path
+                    
+                    setTimeout(() => {
+                         showToast('BUS OFF ROUTE ALERT!', 'error');
+                         bus.classList.replace('bg-yellow-500', 'bg-red-600');
+                    }, 2000);
+                   
+                }, 3000);
+            }
+
+            function resetBusSim() {
+                const bus = document.getElementById('bus-icon');
+                if(bus) {
+                    bus.style.transition = 'none';
+                    bus.style.left = '45px';
+                    bus.style.top = '600px';
+                    bus.classList.replace('bg-red-600', 'bg-yellow-500');
+                }
+            }
+
+            // 2. Walk Sim
+            let walkInterval;
+            function startWalkSim() {
+                resetWalkSim(); // Clear any previous state
+                let timeLeft = 15 * 60;
+                const timer = document.getElementById('walk-timer');
+                const bar = document.getElementById('walk-bar');
+                 document.getElementById('walk-status').innerText = "SAFE PASSAGE";
+                 document.getElementById('walk-status').className = "absolute -top-2 left-1/2 transform -translate-x-1/2 bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-[10px] font-bold tracking-wide";
+                 document.getElementById('walk-circle').classList.remove('border-red-200');
+                 document.getElementById('walk-circle').classList.add('border-emerald-200');
+                 timer.classList.remove('text-red-600');
+                 timer.classList.add('text-emerald-600');
+
+                
+                walkInterval = setInterval(() => {
+                    timeLeft -= 60; // Fast forward
+                    let m = Math.floor(timeLeft / 60);
+                    let s = timeLeft % 60;
+                    timer.innerText = `${m}:${s < 10 ? '0'+s : s}`;
+                    
+                    let percent = ((15*60 - timeLeft) / (15*60)) * 100;
+                    bar.style.width = `${percent}%`;
+                    
+                    if (timeLeft <= 0) {
+                        clearInterval(walkInterval);
+                        showToast('Safely Arrived Home', 'success');
+                    }
+                }, 200);
+            }
+            
+            function runWalkDeviation() {
+                 clearInterval(walkInterval);
+                 document.getElementById('walk-status').innerText = "OFF ROUTE";
+                 document.getElementById('walk-status').className = "absolute -top-2 left-1/2 transform -translate-x-1/2 bg-red-100 text-red-700 px-3 py-1 rounded-full text-[10px] font-bold tracking-wide animate-pulse";
+                 
+                 document.getElementById('walk-circle').classList.remove('border-emerald-200');
+                 document.getElementById('walk-circle').classList.add('border-red-200');
+                 
+                 const timer = document.getElementById('walk-timer');
+                 timer.classList.remove('text-emerald-600');
+                 timer.classList.add('text-red-600');
+                 
+                 showToast('ROUTE DEVIATION DETECTED', 'error');
+            }
+            
+            function resetWalkSim() {
+                clearInterval(walkInterval);
+                 document.getElementById('walk-bar').style.width = '0%';
+                 document.getElementById('walk-timer').innerText = "15:00";
+            }
+
+
+            // 3. Hangout Sim
+            function toggleFriend(btn) {
+                btn.classList.toggle('border-indigo-500');
+                btn.classList.toggle('bg-indigo-50');
+                
+                const list = document.getElementById('hangout-list');
+                const name = btn.querySelector('span').innerText;
+                
+                // Simple visual toggle logic
+                if (btn.classList.contains('bg-indigo-50')) {
+                    const tag = document.createElement('span');
+                    tag.id = `tag-${name}`;
+                    tag.className = 'text-[10px] bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full font-bold';
+                    tag.innerText = name;
+                    list.appendChild(tag);
+                } else {
+                    const tag = document.getElementById(`tag-${name}`);
+                    if (tag) tag.remove();
+                }
+            }
+
+            // Countdown Logic (Main)
+            setInterval(() => {
+                const el = document.getElementById('main-countdown');
+                let [m, s] = el.innerText.split(':').map(Number);
+                if (s === 0) {
+                    if (m === 0) return;
+                    m--;
+                    s = 59;
+                } else {
+                    s--;
+                }
+                el.innerText = `${m}:${s < 10 ? '0'+s : s}`;
+            }, 1000);
+
+        </script>
+    </body>
+</html>

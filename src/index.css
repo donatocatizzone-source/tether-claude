@@ -1,0 +1,115 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+  Tether design tokens.
+  Carried over from the Lovable/Gemini prototype (tether-app-demo.html) so that
+  anything built here matches the existing demo pixel-for-pixel:
+    - Base:      Slate 900 (#0f172a) background, Slate 50 (#f8fafc) foreground
+    - Brand:     blue -> teal gradient (#4292c6 -> #2dd4bf), used for hero/CTA moments
+    - Safe:      teal (status = safe / idle)
+    - Active:    amber (status = session active / countdown running)
+    - Danger:    red (status = SOS / duress / expired)
+    - Dating:    warm rose accent (until distress is triggered, then falls back to danger)
+    - Ride/Pro:  professional sky-blue accent
+  Fonts: Inter (UI), JetBrains Mono (timers, coordinates, log/data readouts)
+*/
+
+@layer base {
+  :root {
+    --background: 222 47% 11%;        /* #0f172a slate-900 */
+    --foreground: 210 40% 98%;        /* #f8fafc slate-50 */
+
+    --card: 222 39% 15%;              /* slightly lifted slate-850 */
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222 39% 13%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 172 66% 50%;           /* #2dd4bf teal-400 - "safe" */
+    --primary-foreground: 222 47% 11%;
+
+    --secondary: 205 55% 51%;         /* #4292c6 blue - brand gradient start */
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 222 30% 20%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 222 30% 20%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 84% 60%;         /* #ef4444 red-500 - "danger" */
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 222 30% 22%;
+    --input: 222 30% 22%;
+    --ring: 172 66% 50%;
+
+    --radius: 1rem;
+
+    /* Mode-specific accents, referenced via bg-mode-*, text-mode-* utilities below */
+    --mode-safe: 172 66% 50%;         /* teal-400 */
+    --mode-active: 38 92% 50%;        /* amber-500 */
+    --mode-danger: 0 84% 60%;         /* red-500 */
+    --mode-dating: 350 89% 60%;       /* rose-500 */
+    --mode-ride: 199 89% 48%;         /* sky-500 / #0ea5e9 */
+
+    --sidebar-background: 222 47% 9%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 172 66% 50%;
+    --sidebar-primary-foreground: 222 47% 11%;
+    --sidebar-accent: 222 30% 20%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 222 30% 22%;
+    --sidebar-ring: 172 66% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+  }
+  .font-mono-data {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+  }
+}
+
+@layer utilities {
+  .bg-brand-gradient {
+    background: linear-gradient(135deg, #4292c6 0%, #2dd4bf 100%);
+  }
+  .bg-mode-safe { background-color: hsl(var(--mode-safe)); }
+  .bg-mode-active { background-color: hsl(var(--mode-active)); }
+  .bg-mode-danger { background-color: hsl(var(--mode-danger)); }
+  .bg-mode-dating { background-color: hsl(var(--mode-dating)); }
+  .bg-mode-ride { background-color: hsl(var(--mode-ride)); }
+
+  .text-mode-safe { color: hsl(var(--mode-safe)); }
+  .text-mode-active { color: hsl(var(--mode-active)); }
+  .text-mode-danger { color: hsl(var(--mode-danger)); }
+  .text-mode-dating { color: hsl(var(--mode-dating)); }
+  .text-mode-ride { color: hsl(var(--mode-ride)); }
+
+  /* Glassmorphism overlay, used on top of the map / camera-style views */
+  .glass-panel {
+    background: rgba(15, 23, 42, 0.65);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(248, 250, 252, 0.08);
+  }
+
+  /* Pulsing "heartbeat" status ring used on the home dashboard */
+  @keyframes pulse-ring {
+    0% { box-shadow: 0 0 0 0 hsl(var(--mode-safe) / 0.55); }
+    70% { box-shadow: 0 0 0 18px hsl(var(--mode-safe) / 0); }
+    100% { box-shadow: 0 0 0 0 hsl(var(--mode-safe) / 0); }
+  }
+  .animate-pulse-ring {
+    animation: pulse-ring 2.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+}
