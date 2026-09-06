@@ -13,6 +13,7 @@ import ConsumerPage from "@/pages/ConsumerPage";
 import MemberPage from "@/pages/MemberPage";
 import AdminPage from "@/pages/AdminPage";
 import WalkSharePage from "@/pages/WalkSharePage";
+import PropertyShowingRecordPage from "@/pages/PropertyShowingRecordPage";
 import InviteAcceptPage from "@/pages/InviteAcceptPage";
 import NotFound from "@/pages/NotFound";
 
@@ -125,6 +126,9 @@ export default function App() {
                     </ProtectedRoute>
                   }
                 />
+                {/* Public, no auth: the seller opens this from a text message.
+                    Access control lives entirely in the RPC it calls. */}
+                <Route path="/property/share/:token" element={<PropertyShowingRecordPage />} />
                 <Route path="/walk/share/:token" element={<WalkSharePage />} />
                 <Route path="/invite/:token" element={<InviteAcceptPage />} />
                 <Route path="/" element={<Navigate to="/consumer" replace />} />

@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { GoogleMapView } from "@/components/maps/GoogleMapView";
 import { PropertyFormModal } from "@/components/overwatch/PropertyFormModal";
+import { SellerLinkPanel } from "@/components/overwatch/SellerLinkPanel";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -230,6 +231,8 @@ export function PropertyDetailView({ propertyId, onBack }: Props) {
               </CardContent>
             </Card>
           )}
+
+          <SellerLinkPanel property={property} onChanged={load} />
         </div>
       </div>
 
