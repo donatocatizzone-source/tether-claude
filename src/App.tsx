@@ -71,11 +71,20 @@ function RequireWorkspace({ need, children }: { need: "member" | "admin"; childr
   return <>{children}</>;
 }
 
-/** Feeds the signed-in user's real org/role into WorkspaceProvider. */
+/**
+ * Feeds the signed-in user's real org/role into WorkspaceProvider.
+ *
+ * `loading` is not optional here. Without it the provider saw the pre-fetch
+ * `false` values as a decision, demoted a restored `admin` workspace to
+ * `consumer`, and wrote that to localStorage — so a genuine manager was
+ * knocked back to the consumer app on every refresh. Deliberately does not
+ * block rendering on `loading`: that would put a spinner in front of
+ * /consumer and both public share routes, which render instantly today.
+ */
 function WorkspaceGate({ children }: { children: ReactNode }) {
-  const { hasOrganization, isManager } = useProfile();
+  const { hasOrganization, isManager, loading } = useProfile();
   return (
-    <WorkspaceProvider hasOrganization={hasOrganization} isManager={isManager}>
+    <WorkspaceProvider hasOrganization={hasOrganization} isManager={isManager} loading={loading}>
       {children}
     </WorkspaceProvider>
   );
