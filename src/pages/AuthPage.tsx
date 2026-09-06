@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Shield } from "lucide-react";
+import { Shield, MailCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,8 +21,9 @@ export default function AuthPage() {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
   const [inviteInfo, setInviteInfo] = useState<{ email: string; orgName: string } | null>(null);
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, resendConfirmation } = useAuth();
   const navigate = useNavigate();
 
   // If an invite token is present, look it up to pre-fill the email.
@@ -59,14 +60,29 @@ export default function AuthPage() {
         navigate(redirectPath || "/consumer");
       }
     } else {
-      const { error } = await signUp(email, password, fullName);
+      const { error, needsConfirmation } = await signUp(email, password, fullName);
       if (error) {
         toast.error(error.message);
+      } else if (needsConfirmation) {
+        // No session came back, so the project has email confirmation on.
+        // Show a real state with a resend action rather than a toast the user
+        // can dismiss and then be stranded by.
+        setAwaitingConfirmation(true);
       } else {
-        toast.success("Check your email to confirm your account.");
+        // Confirmation is off and we're already signed in. Previously this
+        // path still said "check your email" while AuthRoute redirected —
+        // two contradictory things at once.
+        toast.success("Account created");
+        navigate(redirectPath || "/consumer");
       }
     }
     setLoading(false);
+  }
+
+  async function handleResend() {
+    const { error } = await resendConfirmation(email);
+    if (error) toast.error(error.message);
+    else toast.success("Confirmation email sent again");
   }
 
   return (
@@ -82,6 +98,32 @@ export default function AuthPage() {
           </p>
         </div>
 
+        {awaitingConfirmation ? (
+          <div className="space-y-4 rounded-lg border border-border bg-card p-6 text-center">
+            <MailCheck className="mx-auto h-7 w-7 text-primary" />
+            <div>
+              <h2 className="text-base font-semibold text-foreground">Confirm your email</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                We sent a link to <span className="font-medium text-foreground">{email}</span>. Open it to
+                finish setting up your account.
+              </p>
+            </div>
+            <div className="flex flex-col gap-2">
+              <Button variant="outline" onClick={handleResend} className="w-full">
+                Resend email
+              </Button>
+              <button
+                onClick={() => {
+                  setAwaitingConfirmation(false);
+                  setIsLogin(true);
+                }}
+                className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+              >
+                Back to sign in
+              </button>
+            </div>
+          </div>
+        ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
           {!isLogin && (
             <div className="space-y-2">
@@ -140,13 +182,16 @@ export default function AuthPage() {
             {loading ? "Please wait..." : isLogin ? "Sign In" : "Create Account"}
           </Button>
         </form>
+        )}
 
-        <p className="mt-6 text-center text-sm text-muted-foreground">
-          {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
-          <button onClick={() => setIsLogin(!isLogin)} className="font-semibold text-emerald-400 hover:underline">
-            {isLogin ? "Sign Up" : "Sign In"}
-          </button>
-        </p>
+        {!awaitingConfirmation && (
+          <p className="mt-6 text-center text-sm text-muted-foreground">
+            {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
+            <button onClick={() => setIsLogin(!isLogin)} className="font-semibold text-primary hover:underline">
+              {isLogin ? "Sign Up" : "Sign In"}
+            </button>
+          </p>
+        )}
       </div>
     </div>
   );

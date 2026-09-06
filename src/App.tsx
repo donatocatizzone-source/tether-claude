@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "sonner";
+import { useTheme } from "next-themes";
 
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
@@ -14,6 +15,7 @@ import MemberPage from "@/pages/MemberPage";
 import AdminPage from "@/pages/AdminPage";
 import WalkSharePage from "@/pages/WalkSharePage";
 import PropertyShowingRecordPage from "@/pages/PropertyShowingRecordPage";
+import CreateOrganizationPage from "@/pages/CreateOrganizationPage";
 import InviteAcceptPage from "@/pages/InviteAcceptPage";
 import NotFound from "@/pages/NotFound";
 
@@ -51,9 +53,10 @@ function AuthRoute({ children }: { children: ReactNode }) {
  * /business/admin got the whole console rendering empty — confusing, and more
  * so now that managers can mint public seller links from it.
  *
- * The fallback is deliberately tiered rather than always sending people to
- * /business/member: a user with no organization has no more business on the
- * field view than on the console, so they go to /consumer.
+ * The fallback is tiered rather than a single destination: someone with no
+ * organization is sent to /business/new, which is the thing that would fix
+ * their problem, while someone who has an org but not the role goes to the
+ * field view they can actually use.
  */
 function RequireWorkspace({ need, children }: { need: "member" | "admin"; children: ReactNode }) {
   const { hasOrganization, isManager, loading } = useProfile();
@@ -66,25 +69,42 @@ function RequireWorkspace({ need, children }: { need: "member" | "admin"; childr
     );
   }
 
-  if (!hasOrganization) return <Navigate to="/consumer" replace />;
+  // Send org-less users to the page that fixes their problem, not to the
+  // consumer home with no explanation of why they were moved.
+  if (!hasOrganization) return <Navigate to="/business/new" replace />;
   if (need === "admin" && !isManager) return <Navigate to="/business/member" replace />;
   return <>{children}</>;
 }
 
-/** Feeds the signed-in user's real org/role into WorkspaceProvider. */
+/**
+ * Feeds the signed-in user's real org/role into WorkspaceProvider.
+ *
+ * `loading` is not optional here. Without it the provider saw the pre-fetch
+ * `false` values as a decision, demoted a restored `admin` workspace to
+ * `consumer`, and wrote that to localStorage — so a genuine manager was
+ * knocked back to the consumer app on every refresh. Deliberately does not
+ * block rendering on `loading`: that would put a spinner in front of
+ * /consumer and both public share routes, which render instantly today.
+ */
 function WorkspaceGate({ children }: { children: ReactNode }) {
-  const { hasOrganization, isManager } = useProfile();
+  const { hasOrganization, isManager, loading } = useProfile();
   return (
-    <WorkspaceProvider hasOrganization={hasOrganization} isManager={isManager}>
+    <WorkspaceProvider hasOrganization={hasOrganization} isManager={isManager} loading={loading}>
       {children}
     </WorkspaceProvider>
   );
 }
 
+/** Toasts followed the theme nowhere — they were pinned dark on a light app. */
+function AppToaster() {
+  const { resolvedTheme } = useTheme();
+  return <Toaster theme={resolvedTheme === "light" ? "light" : "dark"} position="top-center" richColors />;
+}
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Toaster theme="dark" position="top-center" richColors />
+      <AppToaster />
       <BrowserRouter basename={import.meta.env.BASE_URL}>
         <AuthProvider>
           <WorkspaceGate>
@@ -103,6 +123,17 @@ export default function App() {
                   element={
                     <ProtectedRoute>
                       <ConsumerPage />
+                    </ProtectedRoute>
+                  }
+                />
+                {/* Outside RequireWorkspace on purpose: that guard redirects
+                    org-less users away from /business/*, and they are exactly
+                    who needs this page. */}
+                <Route
+                  path="/business/new"
+                  element={
+                    <ProtectedRoute>
+                      <CreateOrganizationPage />
                     </ProtectedRoute>
                   }
                 />

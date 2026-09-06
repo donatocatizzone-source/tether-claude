@@ -55,7 +55,7 @@ export default function Settings() {
             </div>
           ))}
 
-          <button className="w-full rounded-xl py-3 text-sm font-medium text-red-500 transition hover:bg-red-50">
+          <button className="w-full rounded-md py-2.5 text-sm font-medium text-destructive transition hover:bg-destructive/10">
             Log Out
           </button>
         </div>

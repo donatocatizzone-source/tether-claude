@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { appUrl } from "@/lib/env";
 import { Mail, Loader2, Copy, Check } from "lucide-react";
 
 // Port of OLD/src/components/tether/overwatch/InviteTeamModal.tsx (see
@@ -58,7 +59,7 @@ export function InviteTeamModal({ open, onClose, onInviteSent }: Props) {
 
       if (error) throw error;
 
-      const link = `${window.location.origin}/auth?invite=${data.token}`;
+      const link = appUrl(`auth?invite=${data.token}`);
       setInviteLink(link);
       toast.success(`Invitation created for ${email.trim()}`);
       onInviteSent();

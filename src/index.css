@@ -17,17 +17,25 @@
 */
 
 @layer base {
+  /*
+    Every foreground/background pair here is verified against WCAG 2.1 AA
+    with a relative-luminance script, not by eye.
+
+    An earlier pass conflated two different requirements, which is why the
+    borders were so loud. 1.4.11's 3:1 applies to boundaries needed to
+    IDENTIFY A COMPONENT — an input edge, a focus ring. It does not apply to
+    a decorative divider on a card that is already distinguishable by its
+    surface. So the two are now separate tokens:
+
+      --input   must clear 3:1 against bg, card AND secondary  (interactive)
+      --border  is a hairline, no ratio requirement             (decorative)
+
+    Rule when styling: interactive elements take `border-input`, containers
+    take `border-border`. Getting this backwards silently drops a control
+    below 1.4.11.
+  */
   :root {
-    /* Accessibility pass: every foreground/background pair below is
-       verified against WCAG 2.1 AA (4.5:1 for text, 3:1 for UI-component
-       boundaries like borders/focus rings) — see the contrast audit in
-       PR history for the exact numbers. Where the original demo's colors
-       failed (primary/secondary/destructive button text, borders, the
-       mode-* accents used as text), the HSL lightness was adjusted just
-       enough to pass; hue/saturation (the actual brand colors) are
-       unchanged. mode-* are no longer theme-invariant — see below.
-       --radius unaffected. */
-    --radius: 0.625rem;
+    --radius: 0.375rem;
 
     /* Mode accent colors, LIGHT variant — darkened from the reference's
        literal Tailwind shade so text-mode-* passes 4.5:1 on a light
@@ -56,21 +64,25 @@
     --primary: 172 66% 28%;            /* was 45% — white button text was 2.21:1, now 5.19:1 */
     --primary-foreground: 210 40% 98%;
 
-    --secondary: 205 55% 40%;          /* was 51% — white button text was 3.42:1, now 5.14:1 */
-    --secondary-foreground: 210 40% 98%;
+    /* NOT a brand color — a neutral elevated surface. It is used as
+       `bg-secondary` on ~72 cards/inputs across the B2B console, and was a
+       saturated mid-blue (205 55% 40%), which is why every KPI card and
+       table rendered as a solid blue block. muted-fg on it: 5.58:1. */
+    --secondary: 210 20% 95%;
+    --secondary-foreground: 222 47% 11%;
 
     --muted: 210 40% 96%;
-    --muted-foreground: 215 25% 40%;   /* was 215 16% 47% — worst-case pairing was 4.30:1, now 5.70:1 */
+    --muted-foreground: 215 25% 40%;   /* 5.97:1 on bg, 6.25:1 on card */
 
     --accent: 210 40% 96%;
     --accent-foreground: 222 47% 11%;
 
-    --destructive: 0 84% 46%;          /* was 60% — white button text was 3.61:1, now 4.99:1 */
+    --destructive: 0 84% 46%;          /* white button text 4.99:1 */
     --destructive-foreground: 210 40% 98%;
 
-    --border: 215 20% 55%;             /* was 214 32% 91% — 1.19:1 (fails non-text 3:1), now 3.44:1 */
-    --input: 215 20% 55%;
-    --ring: 172 66% 28%;
+    --border: 214 20% 91%;             /* hairline, decorative — 1.24:1 on card */
+    --input: 215 20% 55%;              /* interactive — 3.44:1 on bg, 3.60:1 on card */
+    --ring: 172 66% 28%;               /* 5.19:1 on bg */
 
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 222 47% 11%;
@@ -78,15 +90,16 @@
     --sidebar-primary-foreground: 210 40% 98%;
     --sidebar-accent: 210 40% 96%;
     --sidebar-accent-foreground: 222 47% 11%;
-    --sidebar-border: 215 20% 55%;
+    --sidebar-border: 214 20% 91%;
     --sidebar-ring: 172 66% 28%;
   }
 
-  /* DARK. Base background/card/foreground/primary already passed AA
-     comfortably (primary especially: bright teal + dark text = 9.57:1)
-     and are unchanged; secondary/destructive/border get the same fix as
-     light mode since they were failing there too (identical values were
-     shared between both themes before this pass). */
+  /* DARK — the default. Three neutral depths rather than a flat slab:
+       background  222 47%  7%   the page
+       card        222 30% 10%   panels sitting on it
+       secondary   222 22% 13%   controls/inset surfaces on those panels
+     Each step is a small lift, so structure reads from surface rather than
+     from heavy rules. */
   .dark {
     /* Mode accent colors, DARK variant — the reference's original
        values; already pass 4.5:1 as text against this dark background. */
@@ -96,41 +109,42 @@
     --mode-dating: 350 89% 60%;
     --mode-ride: 199 89% 48%;
 
-    --background: 222 47% 11%;        /* #0f172a slate-900 */
-    --foreground: 210 40% 98%;        /* #f8fafc slate-50 */
+    --background: 222 47% 7%;         /* fg 18.35:1, muted-fg 7.47:1 */
+    --foreground: 210 40% 98%;
 
-    --card: 222 39% 15%;              /* slightly lifted slate-850 */
+    --card: 222 30% 10%;              /* fg 17.20:1, muted-fg 7.01:1 */
     --card-foreground: 210 40% 98%;
 
-    --popover: 222 39% 13%;
+    --popover: 222 30% 12%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 172 66% 50%;           /* #2dd4bf teal-400 - "safe" — already 9.57:1, unchanged */
-    --primary-foreground: 222 47% 11%;
+    --primary: 172 66% 50%;           /* dark text on it: 10.27:1 */
+    --primary-foreground: 222 47% 7%;
 
-    --secondary: 205 55% 40%;         /* was 51% — white button text was 3.42:1, now 5.14:1 */
+    /* Neutral inset surface, NOT a brand color — see the light block. */
+    --secondary: 222 22% 13%;         /* fg 15.88:1, muted-fg 6.47:1 */
     --secondary-foreground: 210 40% 98%;
 
-    --muted: 222 30% 20%;
-    --muted-foreground: 215 20% 65%;  /* already 6.29-6.96:1, unchanged */
+    --muted: 222 25% 15%;
+    --muted-foreground: 215 20% 65%;  /* 7.47:1 on bg, 7.01:1 on card */
 
-    --accent: 222 30% 20%;
+    --accent: 222 25% 15%;
     --accent-foreground: 210 40% 98%;
 
-    --destructive: 0 84% 46%;         /* was 60% — white button text was 3.61:1, now 4.99:1 */
+    --destructive: 0 84% 46%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 222 20% 45%;            /* was 222 30% 22% — 1.39:1 (fails non-text 3:1), now 3.29:1 */
-    --input: 222 20% 45%;
-    --ring: 172 66% 50%;
+    --border: 222 15% 20%;            /* hairline, decorative — 1.36:1 on card */
+    --input: 222 16% 44%;             /* interactive — worst case 3.03:1 (vs secondary) */
+    --ring: 172 66% 50%;              /* 10.27:1 on bg */
 
-    --sidebar-background: 222 47% 9%;
+    --sidebar-background: 222 40% 5%;
     --sidebar-foreground: 210 40% 98%;
     --sidebar-primary: 172 66% 50%;
-    --sidebar-primary-foreground: 222 47% 11%;
-    --sidebar-accent: 222 30% 20%;
+    --sidebar-primary-foreground: 222 47% 7%;
+    --sidebar-accent: 222 25% 15%;
     --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 222 20% 45%;
+    --sidebar-border: 222 15% 20%;
     --sidebar-ring: 172 66% 50%;
   }
 }
@@ -172,13 +186,5 @@
     border: 1px solid rgba(248, 250, 252, 0.08);
   }
 
-  /* Pulsing "heartbeat" status ring used on the home dashboard */
-  @keyframes pulse-ring {
-    0% { box-shadow: 0 0 0 0 hsl(var(--mode-safe) / 0.55); }
-    70% { box-shadow: 0 0 0 18px hsl(var(--mode-safe) / 0); }
-    100% { box-shadow: 0 0 0 0 hsl(var(--mode-safe) / 0); }
-  }
-  .animate-pulse-ring {
-    animation: pulse-ring 2.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  }
+
 }
