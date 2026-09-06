@@ -12,6 +12,8 @@ import { AuditLog } from "@/components/overwatch/AuditLog";
 import { InvitationsView } from "@/components/overwatch/InvitationsView";
 import { OverwatchAnalytics } from "@/components/overwatch/OverwatchAnalytics";
 import { EmployeeDetailView } from "@/components/overwatch/EmployeeDetailView";
+import { PropertiesView } from "@/components/overwatch/PropertiesView";
+import { PropertyDetailView } from "@/components/overwatch/PropertyDetailView";
 import { type Employee, dummyEmployees, type Incident as DummyIncident, dummyIncidents, type LocalIncident } from "@/components/overwatch/dummyData";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
@@ -35,6 +37,7 @@ export function OverwatchDashboard() {
   const [activeView, setActiveView] = useState("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
   const [localIncidents, setLocalIncidents] = useState<LocalIncident[]>([]);
   const [employees, setEmployees] = useState<Employee[]>(dummyEmployees);
   const [feedIncidents, setFeedIncidents] = useState<DummyIncident[]>(dummyIncidents);
@@ -135,6 +138,7 @@ export function OverwatchDashboard() {
     setActiveView(view);
     setSidebarOpen(false);
     setSelectedEmployee(null);
+    setSelectedPropertyId(null);
   };
 
   const handleIncidentCreated = (incident: LocalIncident) => {
@@ -246,6 +250,12 @@ export function OverwatchDashboard() {
             </div>
             <IncidentFeed incidents={feedIncidents} />
           </div>
+        )}
+        {activeView === "properties" && !selectedPropertyId && (
+          <PropertiesView onSelect={setSelectedPropertyId} />
+        )}
+        {activeView === "properties" && selectedPropertyId && (
+          <PropertyDetailView propertyId={selectedPropertyId} onBack={() => setSelectedPropertyId(null)} />
         )}
         {activeView === "incidents" && <AlertStream localIncidents={localIncidents} onUpdateLocal={setLocalIncidents} />}
         {activeView === "audit-log" && <AuditLog />}

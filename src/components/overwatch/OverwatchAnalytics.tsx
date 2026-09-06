@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { BarChart3, TrendingUp, Clock, Users, AlertTriangle, ShieldCheck } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { KpiCard } from "@/components/overwatch/KpiCard";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -212,22 +213,6 @@ export function OverwatchAnalytics() {
         </Card>
       </div>
     </div>
-  );
-}
-
-function KpiCard({ icon: Icon, label, value, color }: { icon: typeof AlertTriangle; label: string; value: string | number; color: string }) {
-  return (
-    <Card className="border-border bg-secondary">
-      <CardContent className="flex items-center gap-3 p-4">
-        <div className={`flex h-10 w-10 items-center justify-center rounded-xl bg-background ${color}`}>
-          <Icon size={20} />
-        </div>
-        <div>
-          <p className="text-xs text-muted-foreground">{label}</p>
-          <p className="text-xl font-bold text-foreground">{value}</p>
-        </div>
-      </CardContent>
-    </Card>
   );
 }
 
