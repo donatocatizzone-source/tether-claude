@@ -73,8 +73,8 @@ export default function AuthPage() {
     <div className="flex min-h-screen flex-col items-center justify-center bg-background px-6">
       <div className="w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center gap-3">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-500 shadow-lg shadow-emerald-500/30">
-            <Shield size={32} className="text-white" />
+          <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-foreground">
+            <Shield size={26} className="text-background" />
           </div>
           <h1 className="text-3xl font-bold text-foreground">Tether</h1>
           <p className="text-sm text-muted-foreground">
@@ -96,7 +96,7 @@ export default function AuthPage() {
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="Your name"
                 required={!isLogin}
-                className="h-12 rounded-xl border-border bg-secondary text-foreground placeholder:text-muted-foreground"
+                className="h-12 rounded-lg border-input bg-background text-foreground placeholder:text-muted-foreground"
               />
             </div>
           )}
@@ -112,7 +112,7 @@ export default function AuthPage() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
               required
-              className="h-12 rounded-xl border-border bg-secondary text-foreground placeholder:text-muted-foreground"
+              className="h-12 rounded-lg border-input bg-background text-foreground placeholder:text-muted-foreground"
             />
           </div>
           <div className="space-y-2">
@@ -128,14 +128,14 @@ export default function AuthPage() {
               placeholder="••••••••"
               required
               minLength={6}
-              className="h-12 rounded-xl border-border bg-secondary text-foreground placeholder:text-muted-foreground"
+              className="h-12 rounded-lg border-input bg-background text-foreground placeholder:text-muted-foreground"
             />
           </div>
 
           <Button
             type="submit"
             disabled={loading}
-            className="h-12 w-full rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-base font-semibold text-white shadow-lg shadow-emerald-500/25 active:scale-95"
+            className="h-12 w-full rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 text-base font-semibold text-white transition active:scale-[0.98]"
           >
             {loading ? "Please wait..." : isLogin ? "Sign In" : "Create Account"}
           </Button>

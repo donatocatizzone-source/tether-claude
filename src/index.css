@@ -27,7 +27,7 @@
        enough to pass; hue/saturation (the actual brand colors) are
        unchanged. mode-* are no longer theme-invariant — see below.
        --radius unaffected. */
-    --radius: 1rem;
+    --radius: 0.625rem;
 
     /* Mode accent colors, LIGHT variant — darkened from the reference's
        literal Tailwind shade so text-mode-* passes 4.5:1 on a light
