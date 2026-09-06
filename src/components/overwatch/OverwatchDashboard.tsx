@@ -38,6 +38,10 @@ export function OverwatchDashboard() {
   const { user } = useAuth();
   const [activeView, setActiveView] = useState("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  // Persisted: a manager who collapses the rail expects it to stay collapsed.
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(
+    () => typeof window !== "undefined" && localStorage.getItem("tether-overwatch-rail") === "collapsed",
+  );
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
   const [localIncidents, setLocalIncidents] = useState<LocalIncident[]>([]);
@@ -139,6 +143,10 @@ export function OverwatchDashboard() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mergedEmployees.map((e) => `${e.name}:${e.status}`).join(",")]);
+
+  useEffect(() => {
+    localStorage.setItem("tether-overwatch-rail", sidebarCollapsed ? "collapsed" : "expanded");
+  }, [sidebarCollapsed]);
 
   const handleViewChange = (view: string) => {
     setActiveView(view);
@@ -242,15 +250,24 @@ export function OverwatchDashboard() {
 
       {sidebarOpen && <div className="fixed inset-0 z-30 bg-black/50 md:hidden" onClick={() => setSidebarOpen(false)} />}
 
+      {/* The drawer always opens at full width; only the docked rail collapses.
+          A half-width off-canvas drawer would be pointless on a phone. */}
       <div
-        className={`fixed inset-y-0 left-0 z-40 w-64 transform transition-transform duration-200 md:relative md:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 w-56 transform transition-transform duration-200 md:relative md:w-auto md:translate-x-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <OverwatchSidebar activeView={activeView} onViewChange={handleViewChange} />
+        <OverwatchSidebar
+          activeView={activeView}
+          onViewChange={handleViewChange}
+          collapsed={sidebarCollapsed}
+          onToggleCollapsed={() => setSidebarCollapsed((v) => !v)}
+        />
       </div>
 
-      <main className="flex-1 overflow-auto p-4 pt-16 md:p-6 md:pt-6">
+      {/* max-width so tables and charts don't stretch across an ultrawide, and
+          mx-auto so they stay centred in the remaining space. */}
+      <main className="mx-auto w-full max-w-[1600px] flex-1 overflow-auto p-4 pt-16 md:p-6 md:pt-6">
         {/* Persistent, not dismissible: if invented people and a fabricated
             distress alert are on screen, that must be visible at all times,
             not just on the view where they were first noticed. */}
@@ -271,11 +288,11 @@ export function OverwatchDashboard() {
               <h1 className="text-2xl font-bold text-foreground">Tether Overwatch</h1>
               <p className="text-sm text-muted-foreground">Real-time team safety monitoring</p>
             </div>
-            <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-              <div className="xl:col-span-1">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+              <div className="lg:col-span-1">
                 <StatusBoard employees={mergedEmployees} />
               </div>
-              <div className="xl:col-span-2">
+              <div className="lg:col-span-2">
                 <AlertsMap employees={mergedEmployees} />
               </div>
             </div>

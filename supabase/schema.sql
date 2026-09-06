@@ -1437,3 +1437,326 @@ grant update (
   updated_at
 ) on public.profiles to authenticated;
 
+
+
+-- =====================================================================
+-- PROFILE BACKFILL + SAFE create_organization()
+-- (mirrors supabase/migrations/0003_backfill_profiles.sql)
+-- =====================================================================
+-- Supersedes the create_organization() defined above. See that migration for
+-- why: the original only UPDATEd public.profiles, so an account with no
+-- profile row got an organisation it was never attached to, with no error.
+
+
+-- ---------------------------------------------------------------------
+-- 1. Backfill
+-- ---------------------------------------------------------------------
+insert into public.profiles (user_id, full_name)
+select u.id, coalesce(u.raw_user_meta_data ->> 'full_name', '')
+from auth.users u
+where not exists (select 1 from public.profiles p where p.user_id = u.id);
+
+-- Everyone should hold at least the base role, same as handle_new_user_role().
+insert into public.user_roles (user_id, role)
+select u.id, 'user'
+from auth.users u
+where not exists (select 1 from public.user_roles r where r.user_id = u.id)
+on conflict (user_id, role) do nothing;
+
+-- ---------------------------------------------------------------------
+-- 2 + 3. create_organization(), no longer assuming the profile exists
+-- ---------------------------------------------------------------------
+create or replace function public.create_organization(_name text, _job_title text default '')
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  _uid uuid := auth.uid();
+  _clean_name text := btrim(coalesce(_name, ''));
+  _existing uuid;
+  _org_id uuid;
+  _rows int;
+begin
+  if _uid is null then
+    raise exception 'Not signed in';
+  end if;
+
+  if length(_clean_name) < 2 then
+    raise exception 'Organisation name must be at least 2 characters';
+  end if;
+
+  -- One org per user: get_user_org_id() returns a single uuid and the whole
+  -- RLS model is built on that. Fail loudly rather than silently moving
+  -- someone out of a brokerage they already belong to.
+  select organization_id into _existing from public.profiles where user_id = _uid;
+  if _existing is not null then
+    raise exception 'You already belong to an organisation';
+  end if;
+
+  insert into public.organizations (name, subscription_tier)
+  values (_clean_name, 'free')
+  returning id into _org_id;
+
+  -- Insert-or-update. The previous version only updated, so an account whose
+  -- profile predated the handle_new_user() trigger got an organisation it was
+  -- never actually attached to.
+  insert into public.profiles (user_id, organization_id, job_title)
+  values (_uid, _org_id, coalesce(nullif(btrim(_job_title), ''), ''))
+  on conflict (user_id) do update
+    set organization_id = excluded.organization_id,
+        job_title = coalesce(nullif(excluded.job_title, ''), public.profiles.job_title);
+
+  -- Belt and braces: if the write somehow still matched nothing, abort the
+  -- whole transaction rather than hand back an org id that leads nowhere.
+  select count(*) into _rows
+  from public.profiles
+  where user_id = _uid and organization_id = _org_id;
+
+  if _rows = 0 then
+    raise exception 'Failed to attach profile to the new organisation';
+  end if;
+
+  insert into public.user_roles (user_id, role) values (_uid, 'admin')
+    on conflict (user_id, role) do nothing;
+  insert into public.user_roles (user_id, role) values (_uid, 'manager')
+    on conflict (user_id, role) do nothing;
+
+  return _org_id;
+end;
+$$;
+
+revoke all on function public.create_organization(text, text) from public;
+grant execute on function public.create_organization(text, text) to authenticated;
+
+
+
+-- =====================================================================
+-- INVITE ACCEPT (mirrors supabase/migrations/0004_invite_accept.sql)
+-- =====================================================================
+-- Also DROPS the "Anyone can read invitation by token" policy created above:
+-- it was for select using (true) with no TO clause, so anon could enumerate
+-- every invitee email, role, org id and token. Both readers now go through
+-- the security-definer functions below.
+
+
+-- ---------------------------------------------------------------------
+-- 1. get_invitation_preview() — safe to call signed out
+-- ---------------------------------------------------------------------
+-- Deliberately returns a MASKED email. The page needs to show who the invite
+-- is for so a signed-in user can tell whether they are the right person, but
+-- a token in a forwarded message should not disclose a full address.
+-- Returns null for unknown, expired and already-accepted tokens alike, so it
+-- cannot be used to probe which tokens exist.
+create or replace function public.get_invitation_preview(_token uuid)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  inv record;
+  masked text;
+begin
+  select i.email, i.role, i.organization_id, i.status, i.expires_at
+    into inv
+  from public.org_invitations i
+  where i.token = _token;
+
+  if not found or inv.status <> 'pending' or inv.expires_at < now() then
+    return null;
+  end if;
+
+  -- a***@example.com
+  masked := left(inv.email, 1) || '***' || substring(inv.email from position('@' in inv.email));
+
+  return jsonb_build_object(
+    'organization_name', (select o.name from public.organizations o where o.id = inv.organization_id),
+    'email_masked', masked,
+    'role', inv.role
+  );
+end;
+$$;
+
+revoke all on function public.get_invitation_preview(uuid) from public;
+grant execute on function public.get_invitation_preview(uuid) to anon, authenticated;
+
+-- ---------------------------------------------------------------------
+-- 2. accept_org_invitation()
+-- ---------------------------------------------------------------------
+create or replace function public.accept_org_invitation(_token uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  _uid uuid := auth.uid();
+  _email text := lower(coalesce(auth.jwt() ->> 'email', ''));
+  inv record;
+  _rows int;
+begin
+  if _uid is null then
+    raise exception 'Not signed in';
+  end if;
+
+  select * into inv from public.org_invitations where token = _token;
+
+  if not found then
+    raise exception 'That invitation link is not valid';
+  end if;
+  if inv.status <> 'pending' then
+    raise exception 'That invitation has already been used';
+  end if;
+  if inv.expires_at < now() then
+    raise exception 'That invitation has expired';
+  end if;
+
+  -- The token alone must not be enough. Invite links get forwarded, pasted
+  -- into group chats and logged by mail scanners; without this check anyone
+  -- holding the string could join the brokerage.
+  if lower(inv.email) <> _email then
+    raise exception 'This invitation was sent to a different email address';
+  end if;
+
+  -- Insert-or-update: an account created before handle_new_user() existed has
+  -- no profiles row, and a plain UPDATE would match nothing and report success
+  -- (see 0003 for the same bug in create_organization).
+  insert into public.profiles (user_id, organization_id)
+  values (_uid, inv.organization_id)
+  on conflict (user_id) do update
+    set organization_id = excluded.organization_id;
+
+  select count(*) into _rows
+  from public.profiles
+  where user_id = _uid and organization_id = inv.organization_id;
+
+  if _rows = 0 then
+    raise exception 'Failed to join the organisation';
+  end if;
+
+  insert into public.user_roles (user_id, role) values (_uid, inv.role)
+    on conflict (user_id, role) do nothing;
+  insert into public.user_roles (user_id, role) values (_uid, 'user')
+    on conflict (user_id, role) do nothing;
+
+  update public.org_invitations set status = 'accepted' where token = _token;
+
+  return jsonb_build_object(
+    'organization_id', inv.organization_id,
+    'organization_name', (select o.name from public.organizations o where o.id = inv.organization_id),
+    'role', inv.role
+  );
+end;
+$$;
+
+revoke all on function public.accept_org_invitation(uuid) from public;
+grant execute on function public.accept_org_invitation(uuid) to authenticated;
+
+-- ---------------------------------------------------------------------
+-- 3. Drop the blanket public read
+-- ---------------------------------------------------------------------
+-- Everything that needed it now goes through the two functions above.
+-- Managers keep their own org-scoped SELECT policy (schema.sql), so the
+-- Invitations console view is unaffected.
+drop policy if exists "Anyone can read invitation by token" on public.org_invitations;
+
+
+
+-- =====================================================================
+-- CLOSE PUBLIC READS (mirrors supabase/migrations/0005_close_public_reads.sql)
+-- =====================================================================
+-- Drops the two remaining  policies created above,
+-- on walk_sessions and circle_invitations. Both let any holder of the anon key
+-- enumerate the whole table; the token was only a secret in the client WHERE
+-- clause. Readers go through the security-definer functions below instead.
+
+
+-- ---------------------------------------------------------------------
+-- 1. walk_sessions
+-- ---------------------------------------------------------------------
+-- Deliberately does NOT return user_id or share_token. The recipient of a
+-- Walk Home link needs to know where their friend is heading and whether they
+-- have arrived; they do not need an id they could correlate across sessions.
+create or replace function public.get_walk_share(_token uuid)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  w record;
+begin
+  select ws.destination, ws.status, ws.started_at, ws.expected_end_at,
+         ws.completed_at, ws.user_id
+    into w
+  from public.walk_sessions ws
+  where ws.share_token = _token;
+
+  if not found then
+    return null;
+  end if;
+
+  -- A finished walk stops being a live location feed. Once completed, the
+  -- link reports the outcome and nothing more.
+  return jsonb_build_object(
+    'destination', w.destination,
+    'status', w.status,
+    'started_at', w.started_at,
+    'expected_end_at', w.expected_end_at,
+    'completed_at', w.completed_at,
+    'walker_name', coalesce(
+      nullif((select p.full_name from public.profiles p where p.user_id = w.user_id), ''),
+      'Your friend'
+    )
+  );
+end;
+$$;
+
+revoke all on function public.get_walk_share(uuid) from public;
+grant execute on function public.get_walk_share(uuid) to anon, authenticated;
+
+drop policy if exists "Anyone can view walk session by share token" on public.walk_sessions;
+
+-- ---------------------------------------------------------------------
+-- 2. circle_invitations
+-- ---------------------------------------------------------------------
+-- Only who is inviting. accept_circle_invite() already does the redemption
+-- and is already security definer, so nothing needs table-level read access.
+create or replace function public.get_circle_invitation_preview(_token uuid)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  inv record;
+begin
+  select ci.invited_by, ci.invited_name, ci.status
+    into inv
+  from public.circle_invitations ci
+  where ci.token = _token;
+
+  if not found or inv.status <> 'pending' then
+    return null;
+  end if;
+
+  return jsonb_build_object(
+    'inviter_name', coalesce(
+      nullif((select p.full_name from public.profiles p where p.user_id = inv.invited_by), ''),
+      'Someone'
+    ),
+    'invited_name', inv.invited_name
+  );
+end;
+$$;
+
+revoke all on function public.get_circle_invitation_preview(uuid) from public;
+grant execute on function public.get_circle_invitation_preview(uuid) to anon, authenticated;
+
+drop policy if exists "Anyone can read invitation by token" on public.circle_invitations;
+

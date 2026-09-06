@@ -59,7 +59,7 @@ export function InviteTeamModal({ open, onClose, onInviteSent }: Props) {
 
       if (error) throw error;
 
-      const link = appUrl(`auth?invite=${data.token}`);
+      const link = appUrl(`invite/${data.token}`);
       setInviteLink(link);
       toast.success(`Invitation created for ${email.trim()}`);
       onInviteSent();

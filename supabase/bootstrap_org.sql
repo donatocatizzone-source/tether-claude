@@ -35,10 +35,21 @@ begin
     returning id into _org_id;
   end if;
 
-  update public.profiles
-    set organization_id = _org_id,
-        job_title = coalesce(nullif(job_title, ''), 'Managing Broker')
-    where user_id = _uid;
+  -- Insert-or-update, not update. handle_new_user() only started creating
+  -- profiles when schema.sql was first applied, so an account that signed up
+  -- before that has no row — and a plain UPDATE would match nothing, raise
+  -- nothing, and let this script print "Bootstrapped..." having done nothing.
+  insert into public.profiles (user_id, organization_id, job_title)
+  values (_uid, _org_id, 'Managing Broker')
+  on conflict (user_id) do update
+    set organization_id = excluded.organization_id,
+        job_title = coalesce(nullif(public.profiles.job_title, ''), 'Managing Broker');
+
+  if not exists (
+    select 1 from public.profiles where user_id = _uid and organization_id = _org_id
+  ) then
+    raise exception 'Failed to attach profile to org % — aborting', _org_id;
+  end if;
 
   -- user_roles is (user_id, role) unique, so a user can hold several.
   insert into public.user_roles (user_id, role) values (_uid, 'manager')

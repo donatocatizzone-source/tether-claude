@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 import { SafetyTimerProvider } from "@/contexts/SafetyTimerContext";
 import { useProfile } from "@/hooks/useProfile";
+import { env } from "@/lib/env";
 
 import AuthPage from "@/pages/AuthPage";
 import ConsumerPage from "@/pages/ConsumerPage";
@@ -49,17 +50,23 @@ function AuthRoute({ children }: { children: ReactNode }) {
 /**
  * Gates the two business workspaces on the signed-in user's real org/role.
  *
- * RLS already blocks the data, but without this an ordinary member reaching
- * /business/admin got the whole console rendering empty — confusing, and more
- * so now that managers can mint public seller links from it.
+ * DISABLED BY DEFAULT while the product is being demoed — see
+ * env.enforceWorkspaceRoles. Set VITE_ENFORCE_WORKSPACE_ROLES=true to turn it
+ * back on for production. The logic below is kept intact rather than deleted
+ * so that switch is a one-line change, not a rebuild.
  *
- * The fallback is tiered rather than a single destination: someone with no
- * organization is sent to /business/new, which is the thing that would fix
- * their problem, while someone who has an org but not the role goes to the
+ * When enforced: the fallback is tiered rather than a single destination.
+ * Someone with no organization goes to /business/new, which is the thing that
+ * would fix their problem; someone who has an org but not the role goes to the
  * field view they can actually use.
  */
 function RequireWorkspace({ need, children }: { need: "member" | "admin"; children: ReactNode }) {
   const { hasOrganization, isManager, loading } = useProfile();
+
+  // Demo mode (the default): both business workspaces are reachable by anyone
+  // signed in. Safe because RLS, not this guard, is what protects the data —
+  // an org-less visitor gets an empty console, not someone else's brokerage.
+  if (!env.enforceWorkspaceRoles) return <>{children}</>;
 
   if (loading) {
     return (
