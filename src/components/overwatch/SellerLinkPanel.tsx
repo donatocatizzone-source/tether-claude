@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { appUrl } from "@/lib/env";
 import type { Property } from "@/lib/showings";
 
 // Manager-side control for the seller-facing showing record.
@@ -29,7 +30,7 @@ export function SellerLinkPanel({ property, onChanged }: Props) {
   const [confirmUpcoming, setConfirmUpcoming] = useState(false);
   const [confirmRegenerate, setConfirmRegenerate] = useState(false);
 
-  const link = `${window.location.origin}/property/share/${property.share_token}`;
+  const link = appUrl(`property/share/${property.share_token}`);
 
   async function update(patch: Partial<Property>, message: string) {
     setBusy(true);

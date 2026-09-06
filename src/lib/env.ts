@@ -22,6 +22,23 @@ function requireEnv(key: keyof ImportMetaEnv, devFallback = ""): string {
   return value || devFallback;
 }
 
+/**
+ * An absolute URL to a route inside this app.
+ *
+ * `window.location.origin` alone is wrong in production: vite.config.ts sets
+ * `base: "/tether-claude/"` and the router uses that as its basename, so an
+ * origin-rooted link lands outside the app and 404s. That broke email
+ * confirmation links, org invite links, and the seller share links the
+ * property console hands out.
+ *
+ * BASE_URL is "/" in dev and "/tether-claude/" in production, always with a
+ * trailing slash.
+ */
+export function appUrl(path = ""): string {
+  const base = import.meta.env.BASE_URL || "/";
+  return `${window.location.origin}${base}${path.replace(/^\//, "")}`;
+}
+
 export const env = {
   googleMapsApiKey: requireEnv("VITE_GOOGLE_MAPS_API_KEY"),
   supabaseUrl: requireEnv("VITE_SUPABASE_URL"),
