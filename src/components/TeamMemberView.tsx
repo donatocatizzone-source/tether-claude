@@ -17,44 +17,23 @@ import { GoogleMapView } from "@/components/maps/GoogleMapView";
 import { PinPadModal } from "@/components/pro/PinPadModal";
 import { useGeoTracking } from "@/hooks/useGeoTracking";
 import { useSessionCountdown } from "@/hooks/useSessionCountdown";
+import { useMySchedule } from "@/hooks/useMySchedule";
+import { useMyProperties } from "@/hooks/useMyProperties";
+import { MyScheduleToday, type StartedSession } from "@/components/realestate/MyScheduleToday";
+import { MyPropertiesList } from "@/components/realestate/MyPropertiesList";
+import { ACTIVITY_LABELS, type SessionActivity } from "@/lib/showings";
 
 // Port of OLD/src/components/tether/TeamMemberView.tsx (see CLAUDE.md >
 // Ground truth) — the real content of /business/member, replacing this
 // rebuild's earlier placeholder (the old demo's b2b trio, which was a
 // different concept — a realtor showing-timer dashboard, not this).
-const ACTIVITY_PRESETS = [
-  { value: "showing", label: "Showing" },
-  { value: "open_house", label: "Open House" },
-  { value: "appraisal", label: "Appraisal" },
-  { value: "client_meeting", label: "Client Meeting" },
-];
-
-const MOCK_PROPERTIES = [
-  {
-    id: "prop-1",
-    address: "123 Maple Street, Austin TX",
-    image: "https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=120&h=80&fit=crop",
-    beds: 3,
-    baths: 2,
-    sqft: "1,850",
-  },
-  {
-    id: "prop-2",
-    address: "456 Oak Avenue, Austin TX",
-    image: "https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=120&h=80&fit=crop",
-    beds: 4,
-    baths: 3,
-    sqft: "2,400",
-  },
-  {
-    id: "prop-3",
-    address: "789 Cedar Lane, Austin TX",
-    image: "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=120&h=80&fit=crop",
-    beds: 2,
-    baths: 1,
-    sqft: "1,200",
-  },
-];
+// The activity picker is now driven by ACTIVITY_LABELS in lib/showings, which
+// is keyed by the session_activity enum — so the picker, the enum, and the
+// analytics rollups can't drift apart. MOCK_PROPERTIES (three hardcoded
+// Unsplash cards) is gone; assigned properties are real rows now.
+const ACTIVITY_PRESETS = (Object.keys(ACTIVITY_LABELS) as SessionActivity[])
+  .filter((value) => value !== "other")
+  .map((value) => ({ value, label: ACTIVITY_LABELS[value] }));
 
 export function TeamMemberView() {
   const { user } = useAuth();
@@ -73,6 +52,19 @@ export function TeamMemberView() {
   const { label: countdown } = useSessionCountdown(activeExpectedEnd);
 
   const [pinOpen, setPinOpen] = useState(false);
+
+  const {
+    showings: todaysShowings,
+    loading: scheduleLoading,
+    error: scheduleError,
+    refresh: refreshSchedule,
+  } = useMySchedule({ userId: user?.id });
+
+  const {
+    properties: myProperties,
+    loading: propertiesLoading,
+    error: propertiesError,
+  } = useMyProperties(user?.id);
 
   const { location: currentLocation } = useGeoTracking({
     userId: user?.id,
@@ -151,34 +143,51 @@ export function TeamMemberView() {
     };
   }, [activeSessionId]);
 
-  const startSession = async (activity: string, address: string, durationMin = 60) => {
+  /**
+   * Free-form session not tied to a property. Anything attached to a real
+   * property goes through the start_showing_session RPCs instead, so it gets
+   * a geofence and a seller-facing record.
+   *
+   * `client_name` used to receive the activity label here, which is what made
+   * the column mean three different things depending on the writer. The label
+   * now goes to `activity_type` (or `notes` for a custom one).
+   */
+  const startSession = async (
+    activityType: SessionActivity,
+    label: string,
+    address: string,
+    durationMin = 60,
+  ) => {
     if (!user) return;
     setStarting(true);
     try {
-      const now = new Date();
-      const expectedEnd = new Date(now.getTime() + durationMin * 60_000);
+      const expectedEnd = new Date(Date.now() + durationMin * 60_000);
       const { data: profile } = await supabase
         .from("profiles")
         .select("organization_id")
         .eq("user_id", user.id)
-        .single();
+        .maybeSingle();
 
       const { data, error } = await supabase
         .from("professional_sessions")
         .insert({
           user_id: user.id,
-          client_name: activity,
+          organization_id: profile?.organization_id ?? null,
+          client_name: "",
+          activity_type: activityType,
+          // A custom activity has no enum value, so keep its wording somewhere
+          // a manager can still read it.
+          notes: activityType === "other" ? label : "",
           address,
           expected_end_time: expectedEnd.toISOString(),
           status: "active",
-          organization_id: profile?.organization_id || null,
         })
         .select("id")
         .single();
 
       if (error) throw error;
       setActiveSessionId(data.id);
-      setActiveActivity(activity);
+      setActiveActivity(label);
       setActiveAddress(address);
       setActiveExpectedEnd(expectedEnd.toISOString());
       toast.success("Session started — tracking active");
@@ -190,32 +199,54 @@ export function TeamMemberView() {
   };
 
   const handleStartFromForm = () => {
-    const activity = showCustom
-      ? customJob.trim()
-      : ACTIVITY_PRESETS.find((p) => p.value === activityType)?.label || activityType;
-    if (!activity) {
+    if (showCustom) {
+      const label = customJob.trim();
+      if (!label) {
+        toast.error("Describe the activity");
+        return;
+      }
+      startSession("other", label, "");
+      return;
+    }
+
+    const preset = ACTIVITY_PRESETS.find((p) => p.value === activityType);
+    if (!preset) {
       toast.error("Select an activity type");
       return;
     }
-    startSession(activity, "");
+    startSession(preset.value, preset.label, "");
   };
 
-  const handleActivateProperty = (prop: (typeof MOCK_PROPERTIES)[0]) => {
-    startSession("Showing", prop.address, 45);
+  // Sessions started from a real property/showing are created server-side by
+  // the start_showing_session / start_adhoc_showing_session RPCs, so they
+  // arrive here already persisted — this only syncs the local UI state.
+  const handleSessionStarted = (session: StartedSession) => {
+    setActiveSessionId(session.sessionId);
+    setActiveActivity(session.activityLabel);
+    setActiveAddress(session.address);
+    setActiveExpectedEnd(session.expectedEndTime);
   };
 
   const handleEndSession = async (isDuress: boolean) => {
     if (!activeSessionId) return;
     try {
+      // sync_showing_from_session() also stamps this server-side and mirrors
+      // the end onto the linked showing; setting it here too keeps the value
+      // right even if that trigger is ever dropped.
       await supabase
         .from("professional_sessions")
-        .update({ status: isDuress ? "duress_alert" : "completed", updated_at: new Date().toISOString() })
+        .update({
+          status: isDuress ? "duress_alert" : "completed",
+          actual_end_time: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
         .eq("id", activeSessionId);
 
       setActiveSessionId(null);
       setActiveActivity("");
       setActiveAddress("");
       setActiveExpectedEnd(null);
+      refreshSchedule();
       toast.success(isDuress ? "Duress alert sent" : "Session ended");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to end session");
@@ -436,9 +467,23 @@ export function TeamMemberView() {
         )}
       </AnimatePresence>
 
+      {/* Today's real schedule sits above the free-form starter: the common
+          case is starting a showing that's already on the calendar. */}
+      <div className="mb-5">
+        <MyScheduleToday
+          showings={todaysShowings}
+          loading={scheduleLoading}
+          error={scheduleError}
+          hasActiveSession={!!activeSessionId}
+          onSessionStarted={handleSessionStarted}
+        />
+      </div>
+
       {!activeSessionId && (
         <div className="mb-5">
-          <h3 className="mb-3 text-sm font-bold uppercase tracking-wider text-muted-foreground">Start Activity</h3>
+          <h3 className="mb-3 text-sm font-bold uppercase tracking-wider text-muted-foreground">
+            Start Something Else
+          </h3>
           <Card className="border-border/50 bg-secondary/60 backdrop-blur-lg">
             <CardContent className="space-y-4 p-5">
               {!showCustom ? (
@@ -501,33 +546,13 @@ export function TeamMemberView() {
         </div>
       </div>
 
-      <div>
-        <h3 className="mb-3 text-sm font-bold uppercase tracking-wider text-muted-foreground">My Assigned Properties</h3>
-        <div className="space-y-3">
-          {MOCK_PROPERTIES.map((prop) => (
-            <Card key={prop.id} className="border-border/50 bg-secondary/60 backdrop-blur-lg">
-              <CardContent className="flex items-center gap-4 p-4">
-                <img src={prop.image} alt={prop.address} className="h-16 w-20 flex-shrink-0 rounded-xl object-cover" loading="lazy" />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-foreground">{prop.address}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {prop.beds} bd · {prop.baths} ba · {prop.sqft} sqft
-                  </p>
-                </div>
-                <Button
-                  size="sm"
-                  disabled={!!activeSessionId || starting}
-                  onClick={() => handleActivateProperty(prop)}
-                  className="h-10 flex-shrink-0 rounded-xl bg-primary px-3 text-xs font-semibold text-primary-foreground active:scale-95"
-                >
-                  <Home size={14} className="mr-1" />
-                  Activate
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
+      <MyPropertiesList
+        properties={myProperties}
+        loading={propertiesLoading}
+        error={propertiesError}
+        hasActiveSession={!!activeSessionId}
+        onSessionStarted={handleSessionStarted}
+      />
 
       <PinPadModal open={pinOpen} onOpenChange={setPinOpen} onVerify={handleEndSession} />
     </div>
