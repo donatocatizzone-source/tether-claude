@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { GoogleMapView } from "@/components/maps/GoogleMapView";
 import { PinPadModal } from "@/components/pro/PinPadModal";
 import { useGeoTracking } from "@/hooks/useGeoTracking";
+import { useSessionCountdown } from "@/hooks/useSessionCountdown";
 
 // Port of OLD/src/components/tether/TeamMemberView.tsx (see CLAUDE.md >
 // Ground truth) — the real content of /business/member, replacing this
@@ -65,7 +66,11 @@ export function TeamMemberView() {
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [activeActivity, setActiveActivity] = useState("");
   const [activeAddress, setActiveAddress] = useState("");
-  const [countdown, setCountdown] = useState("");
+  const [activeExpectedEnd, setActiveExpectedEnd] = useState<string | null>(null);
+
+  // Was a `countdown` string whose setter was never called anywhere, so the
+  // active-session timer rendered "--:--" for the entire session.
+  const { label: countdown } = useSessionCountdown(activeExpectedEnd);
 
   const [pinOpen, setPinOpen] = useState(false);
 
@@ -119,12 +124,18 @@ export function TeamMemberView() {
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "professional_sessions", filter: `id=eq.${activeSessionId}` },
         (payload) => {
-          const newStatus = (payload.new as { status?: string } | undefined)?.status;
+          const row = payload.new as { status?: string; expected_end_time?: string } | undefined;
+          const newStatus = row?.status;
           const oldStatus = (payload.old as { status?: string } | undefined)?.status;
+
+          // Keep the countdown honest if the session's window moves server-side.
+          if (row?.expected_end_time) setActiveExpectedEnd(row.expected_end_time);
+
           if (newStatus === "completed") {
             setActiveSessionId(null);
             setActiveActivity("");
             setActiveAddress("");
+            setActiveExpectedEnd(null);
             toast.info("Session ended by your manager", { description: "You've been marked safe." });
           } else if (newStatus === "duress_alert") {
             toast.error("Duress alert active on your session");
@@ -169,6 +180,7 @@ export function TeamMemberView() {
       setActiveSessionId(data.id);
       setActiveActivity(activity);
       setActiveAddress(address);
+      setActiveExpectedEnd(expectedEnd.toISOString());
       toast.success("Session started — tracking active");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to start session");
@@ -203,6 +215,7 @@ export function TeamMemberView() {
       setActiveSessionId(null);
       setActiveActivity("");
       setActiveAddress("");
+      setActiveExpectedEnd(null);
       toast.success(isDuress ? "Duress alert sent" : "Session ended");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to end session");

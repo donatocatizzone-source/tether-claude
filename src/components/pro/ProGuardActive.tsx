@@ -1,45 +1,48 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
-import { Shield, Plus, StopCircle, Clock } from "lucide-react";
+import { Plus, StopCircle, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import type { ProSessionSetup } from "@/components/pro/ProGuardSetup";
 import { PinPadModal } from "@/components/pro/PinPadModal";
+import { useSessionCountdown } from "@/hooks/useSessionCountdown";
 
 // Port of OLD/src/components/tether/pro/ProGuardActive.tsx (see CLAUDE.md >
-// Ground truth).
+// Ground truth). The countdown is now derived from the session's real
+// `expected_end_time` via useSessionCountdown rather than a local per-second
+// decrement, so it can't drift from what Overwatch reads out of the database
+// (previously "Extend +15m" only moved the local counter, leaving the manager
+// console showing a session that had already EXPIRED).
+export const EXTEND_SECONDS = 900;
+
 interface Props {
   session: ProSessionSetup;
+  /** ISO timestamp — the session's persisted expected_end_time. */
+  expectedEndTime: string;
   onEnd: (duress: boolean) => void;
+  /** Persists +15m to the database; the parent owns expectedEndTime. */
+  onExtend: () => void | Promise<void>;
 }
 
-export function ProGuardActive({ session, onEnd }: Props) {
-  const [remainingSec, setRemainingSec] = useState(session.durationMin * 60);
+export function ProGuardActive({ session, expectedEndTime, onEnd, onExtend }: Props) {
   const [extended, setExtended] = useState(false);
   const [pinOpen, setPinOpen] = useState(false);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setRemainingSec((s) => Math.max(0, s - 1));
-    }, 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const mins = Math.floor(remainingSec / 60);
-  const secs = remainingSec % 60;
-  const isWarning = remainingSec > 0 && remainingSec <= 300;
-  const isExpired = remainingSec === 0;
+  const { label, remainingSec, isWarning, isExpired } = useSessionCountdown(expectedEndTime);
 
   const timerColor = isExpired ? "text-red-500" : isWarning ? "text-amber-400" : "text-sky-400";
   const ringColor = isExpired ? "stroke-red-500" : isWarning ? "stroke-amber-400" : "stroke-sky-400";
 
-  const progress = session.durationMin * 60 > 0 ? remainingSec / (session.durationMin * 60) : 0;
+  // Ring spans the original window plus any extensions, so extending visibly
+  // refills it instead of pinning the ring at 100%.
+  const totalSec = session.durationMin * 60 + (extended ? EXTEND_SECONDS : 0);
+  const progress = totalSec > 0 ? Math.min(1, remainingSec / totalSec) : 0;
   const circumference = 2 * Math.PI * 90;
 
-  const handleExtend = useCallback(() => {
-    setRemainingSec((s) => s + 900);
+  const handleExtend = async () => {
+    await onExtend();
     setExtended(true);
-  }, []);
+  };
 
   return (
     <div className="mx-auto flex w-full max-w-md flex-col items-center px-5 pb-24">
@@ -69,9 +72,7 @@ export function ProGuardActive({ session, onEnd }: Props) {
           />
         </svg>
         <div className="text-center">
-          <p className={`text-4xl font-bold tabular-nums ${timerColor}`}>
-            {String(mins).padStart(2, "0")}:{String(secs).padStart(2, "0")}
-          </p>
+          <p className={`text-4xl font-bold tabular-nums ${timerColor}`}>{label}</p>
           <p className="mt-1 text-xs text-muted-foreground">
             {isExpired ? "TIME EXPIRED" : isWarning ? "Ending soon" : "Remaining"}
           </p>
