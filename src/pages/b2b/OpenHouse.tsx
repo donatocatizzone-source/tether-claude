@@ -17,7 +17,7 @@ export default function B2BOpenHouse() {
     <div className="relative flex min-h-screen flex-col bg-slate-900 p-6 pt-12 text-white">
       <div className="sticky top-0 z-10 mb-8 flex items-center gap-3 bg-slate-900 py-2">
         <button
-          onClick={() => navigate("/b2b")}
+          onClick={() => navigate("/business/member")}
           className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-800 shadow-sm transition hover:bg-slate-700"
         >
           <ArrowLeft className="h-5 w-5 text-white" />

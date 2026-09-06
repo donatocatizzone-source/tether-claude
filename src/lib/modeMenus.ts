@@ -62,8 +62,8 @@ export const MODE_MENUS: Record<ModeKey, ModeMenuConfig> = {
       { icon: Heart, bg: "bg-white", color: "text-black", text: "H" },
     ],
     features: [
-      { icon: PhoneCall, title: "'Get Out' Protocol", desc: "Trigger a fake emergency call", to: "/dating" },
-      { icon: Clock, title: "Date Timer", desc: "Set a safety check-in", to: "/active-timer" },
+      { icon: PhoneCall, title: "'Get Out' Protocol", desc: "Trigger a fake emergency call", to: "/consumer/dating" },
+      { icon: Clock, title: "Date Timer", desc: "Set a safety check-in", to: "/consumer/active-timer" },
     ],
   },
   ride: {
@@ -75,7 +75,7 @@ export const MODE_MENUS: Record<ModeKey, ModeMenuConfig> = {
       { icon: Map, bg: "bg-green-500", color: "text-white" },
     ],
     features: [
-      { icon: Map, title: "Route Monitor", desc: "Detect off-route deviations", to: "/ride" },
+      { icon: Map, title: "Route Monitor", desc: "Detect off-route deviations", to: "/consumer/ride" },
       { icon: Share2, title: "Share Live Trip", desc: "Send tracking link to contacts", toast: "Trip Link Copied" },
     ],
   },
@@ -88,8 +88,8 @@ export const MODE_MENUS: Record<ModeKey, ModeMenuConfig> = {
       { icon: ShoppingCart, bg: "bg-green-500", color: "text-white", text: "OU" },
     ],
     features: [
-      { icon: Camera, title: "Evidence Locker", desc: "Securely upload photos", to: "/market" },
-      { icon: Lock, title: "View Evidence Vault", desc: "Access encrypted files", to: "/vault" },
+      { icon: Camera, title: "Evidence Locker", desc: "Securely upload photos", to: "/consumer/market" },
+      { icon: Lock, title: "View Evidence Vault", desc: "Access encrypted files", to: "/consumer/vault" },
       { icon: ShieldCheck, title: "Vouch Badge", desc: "Show verifying badge to seller", toast: "Verified Badge Displayed" },
     ],
   },
@@ -97,9 +97,9 @@ export const MODE_MENUS: Record<ModeKey, ModeMenuConfig> = {
     title: "Student Mode",
     subtitle: "Campus & Commute Safety",
     features: [
-      { icon: Bus, title: "School Bus Mode", desc: "Track route home", to: "/student/bus" },
-      { icon: MapPin, title: "Walking Home", desc: "Safe passage timer", to: "/student/walk" },
-      { icon: Users, title: "Hanging Out", desc: "Log who you are with", to: "/student/hangout" },
+      { icon: Bus, title: "School Bus Mode", desc: "Track route home", to: "/consumer/student/bus" },
+      { icon: MapPin, title: "Walking Home", desc: "Safe passage timer", to: "/consumer/student/walk" },
+      { icon: Users, title: "Hanging Out", desc: "Log who you are with", to: "/consumer/student/hangout" },
     ],
   },
 };

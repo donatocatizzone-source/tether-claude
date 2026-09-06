@@ -31,7 +31,7 @@ export default function StudentHangout() {
     <div className="flex min-h-screen flex-col bg-indigo-50 p-6 pt-12">
       <div className="mb-6 flex items-center gap-3">
         <button
-          onClick={() => navigate("/")}
+          onClick={() => navigate("/consumer")}
           className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm"
         >
           <ArrowLeft className="h-5 w-5 text-indigo-900" />
@@ -104,7 +104,7 @@ export default function StudentHangout() {
         <button
           onClick={() => {
             toast.success("Safety Bubble Created");
-            navigate("/");
+            navigate("/consumer");
           }}
           className="w-full rounded-2xl bg-indigo-600 py-4 font-bold text-white shadow-xl transition hover:bg-indigo-700"
         >

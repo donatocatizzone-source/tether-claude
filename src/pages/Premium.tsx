@@ -18,7 +18,7 @@ export default function Premium() {
 
   return (
     <div className="min-h-screen bg-slate-900 p-6 pt-12 text-white">
-      <button onClick={() => navigate("/")} className="mb-8 text-xs font-bold uppercase tracking-widest text-slate-400">
+      <button onClick={() => navigate("/consumer")} className="mb-8 text-xs font-bold uppercase tracking-widest text-slate-400">
         &larr; Premium
       </button>
       <div className={`mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-slate-800 ${feature.color}`}>

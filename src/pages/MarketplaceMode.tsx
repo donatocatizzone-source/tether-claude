@@ -38,7 +38,7 @@ export default function MarketplaceMode() {
       <div className="relative z-10 flex min-h-screen flex-col justify-between p-6 pt-12">
         <div className="flex items-center justify-between">
           <button
-            onClick={() => navigate("/")}
+            onClick={() => navigate("/consumer")}
             className="flex h-10 w-10 items-center justify-center rounded-full bg-black/40 backdrop-blur"
           >
             <X className="h-5 w-5" />
@@ -71,7 +71,7 @@ export default function MarketplaceMode() {
           <h2 className="text-3xl font-bold">Evidence Secured</h2>
           <p className="mb-10 mt-2 text-base text-white/90">Image encrypted and uploaded to cloud vault.</p>
           <button
-            onClick={() => navigate("/")}
+            onClick={() => navigate("/consumer")}
             className="rounded-2xl bg-white px-10 py-4 font-bold text-emerald-800 shadow-lg transition active:scale-95"
           >
             Done

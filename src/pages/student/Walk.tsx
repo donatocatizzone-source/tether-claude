@@ -57,7 +57,7 @@ export default function StudentWalk() {
     <div className="relative flex min-h-screen flex-col bg-emerald-50 p-6 pt-12">
       <div className="mb-10 flex items-center gap-3">
         <button
-          onClick={() => navigate("/")}
+          onClick={() => navigate("/consumer")}
           className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm"
         >
           <ArrowLeft className="h-5 w-5 text-emerald-900" />

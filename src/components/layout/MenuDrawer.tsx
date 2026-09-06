@@ -12,17 +12,15 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useMenuDrawer } from "@/components/layout/MenuDrawerContext";
-import { WorkspaceToggle } from "@/components/layout/WorkspaceToggle";
-import { ThemeToggle } from "@/components/layout/ThemeToggle";
 
-// Port of reference/tether-app-demo.html #menu-drawer (~line 204), with
-// one deliberate deviation: the original's one-way "Switch to Professional"
-// button is replaced by the shared WorkspaceToggle (see CLAUDE.md's
-// workspace toggle section) so switching is bidirectional and consistent
-// with Home/b2b-Home. The original's openPaySheet() calls (Billing &
-// Plans, Upgrade to Premium) point at the payment sheet, which CLAUDE.md
-// documents as separately not-yet-ported app chrome — those show a
-// placeholder toast here rather than silently growing this change into
+// Port of reference/tether-app-demo.html #menu-drawer (~line 204). The
+// original's one-way "Switch to Professional" button and its own
+// light/dark toggle now live in TopBar's WorkspaceSwitcher/ThemeToggle
+// instead (see CLAUDE.md > Ground truth — TopBar is OLD's real pattern,
+// rendered above every workspace). The original's openPaySheet() calls
+// (Billing & Plans, Upgrade to Premium) point at the payment sheet, which
+// CLAUDE.md documents as separately not-yet-ported app chrome — those show
+// a placeholder toast here rather than silently growing this change into
 // building that sheet too.
 export function MenuDrawer() {
   const { isOpen, closeMenu } = useMenuDrawer();
@@ -56,22 +54,12 @@ export function MenuDrawer() {
         </div>
 
         <div className="flex-1 space-y-2 overflow-y-auto p-6">
-          <div className="mb-6">
-            <div className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-500">Workspace</div>
-            <WorkspaceToggle variant="dark" fullWidth onSelect={closeMenu} />
-          </div>
-
-          <div className="mb-6">
-            <div className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-500">Appearance</div>
-            <ThemeToggle fullWidth />
-          </div>
-
           <div className="mb-2 mt-2 text-xs font-bold uppercase tracking-wider text-slate-500">
             Premium Features
           </div>
 
           <button
-            onClick={() => go("/premium/dispatch")}
+            onClick={() => go("/consumer/premium/dispatch")}
             className="group flex w-full items-center gap-4 rounded-xl bg-slate-800/50 p-4 text-white transition hover:bg-slate-800"
           >
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-500/20 text-red-400 transition group-hover:bg-red-500 group-hover:text-white">
@@ -85,7 +73,7 @@ export function MenuDrawer() {
           </button>
 
           <div className="group flex w-full flex-col gap-3 rounded-xl bg-slate-800/50 p-4 text-white transition hover:bg-slate-800">
-            <button onClick={() => go("/premium/guardian")} className="flex items-center gap-4">
+            <button onClick={() => go("/consumer/premium/guardian")} className="flex items-center gap-4">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400 transition group-hover:bg-emerald-500 group-hover:text-white">
                 <Users className="h-5 w-5" />
               </div>
@@ -96,7 +84,7 @@ export function MenuDrawer() {
               <ChevronRight className="h-4 w-4 text-slate-500" />
             </button>
             <button
-              onClick={() => go("/guardian")}
+              onClick={() => go("/consumer/guardian")}
               className="mt-1 flex w-full items-center justify-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 py-2 text-xs font-bold text-emerald-400 transition hover:bg-emerald-500/20"
             >
               <Eye className="h-3 w-3" /> See Preview
@@ -104,7 +92,7 @@ export function MenuDrawer() {
           </div>
 
           <button
-            onClick={() => go("/premium/badge")}
+            onClick={() => go("/consumer/premium/badge")}
             className="group flex w-full items-center gap-4 rounded-xl bg-slate-800/50 p-4 text-white transition hover:bg-slate-800"
           >
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500/20 text-blue-400 transition group-hover:bg-blue-500 group-hover:text-white">
@@ -125,7 +113,7 @@ export function MenuDrawer() {
             <CreditCard className="h-5 w-5" /> Billing &amp; Plans
           </button>
           <button
-            onClick={() => go("/settings")}
+            onClick={() => go("/consumer/settings")}
             className="flex w-full items-center gap-3 p-3 text-slate-300 hover:text-white"
           >
             <Settings className="h-5 w-5" /> App Settings

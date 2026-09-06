@@ -83,7 +83,7 @@ export default function StudentBus() {
       <div className="relative z-10 flex h-full flex-col">
         <div className="p-6 pt-12">
           <button
-            onClick={() => navigate("/")}
+            onClick={() => navigate("/consumer")}
             className="mb-6 flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-lg"
           >
             <ArrowLeft className="h-5 w-5 text-yellow-700" />

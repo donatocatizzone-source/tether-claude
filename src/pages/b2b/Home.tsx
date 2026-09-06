@@ -1,35 +1,27 @@
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Home as HomeIcon, Key, Users, ScanFace, Menu } from "lucide-react";
-import { useMenuDrawer } from "@/components/layout/MenuDrawerContext";
-import { WorkspaceToggle } from "@/components/layout/WorkspaceToggle";
+import { Home as HomeIcon, Key, Users, ScanFace } from "lucide-react";
 
 // Port of reference/tether-app-demo.html #screen-b2b-home (~line 410).
+// Workspace switching + theme now live in TopBar, rendered above this by
+// MemberPage (see CLAUDE.md > Architecture) — this is a temporary mount
+// point under /business/member until real Pro Guard replaces it (build
+// order item 9).
 export default function B2BHome() {
   const navigate = useNavigate();
-  const { openMenu } = useMenuDrawer();
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-900 p-6 pt-16 text-white">
       <div className="mb-6 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={openMenu}
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-800 transition hover:bg-slate-700"
-          >
-            <Menu className="h-5 w-5" />
-          </button>
-          <div>
-            <div className="mb-1 flex items-center gap-2">
-              <div className="flex h-6 w-6 items-center justify-center rounded-md bg-yellow-500 text-xs font-bold text-slate-900">
-                P
-              </div>
-              <span className="text-xs font-bold uppercase tracking-widest text-yellow-500">Professional</span>
+        <div>
+          <div className="mb-1 flex items-center gap-2">
+            <div className="flex h-6 w-6 items-center justify-center rounded-md bg-yellow-500 text-xs font-bold text-slate-900">
+              P
             </div>
-            <h2 className="text-2xl font-bold">Agent Dashboard</h2>
+            <span className="text-xs font-bold uppercase tracking-widest text-yellow-500">Professional</span>
           </div>
+          <h2 className="text-2xl font-bold">Agent Dashboard</h2>
         </div>
-        <WorkspaceToggle variant="dark" />
       </div>
 
       <div className="relative mb-6 overflow-hidden rounded-3xl border border-slate-700 bg-slate-800 p-6 shadow-xl">
@@ -45,7 +37,7 @@ export default function B2BHome() {
           <p className="mb-6 text-sm text-slate-400">456 Hollywood Blvd, Los Angeles</p>
 
           <button
-            onClick={() => navigate("/active-timer")}
+            onClick={() => navigate("/consumer/active-timer")}
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-yellow-500 to-amber-600 py-4 font-bold text-slate-900 shadow-lg transition hover:brightness-110"
           >
             <Key className="h-4 w-4" /> Start Showing Timer
@@ -55,7 +47,7 @@ export default function B2BHome() {
 
       <div className="grid grid-cols-2 gap-4">
         <button
-          onClick={() => navigate("/b2b/openhouse")}
+          onClick={() => navigate("/business/member/openhouse")}
           className="group rounded-2xl border border-slate-700 bg-slate-800 p-5 text-left transition hover:border-yellow-500/50"
         >
           <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-slate-700 transition group-hover:bg-yellow-500 group-hover:text-slate-900">
@@ -77,7 +69,7 @@ export default function B2BHome() {
         </button>
 
         <button
-          onClick={() => navigate("/b2b/team")}
+          onClick={() => navigate("/business/member/team")}
           className="col-span-2 flex items-center justify-between rounded-2xl border border-slate-700 bg-slate-800 p-5 text-left transition hover:border-yellow-500/50"
         >
           <div>

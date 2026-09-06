@@ -63,7 +63,7 @@ export default function ActiveTimer() {
         <button
           onClick={() => {
             toast.success("Check-in Confirmed. Timer Stopped.");
-            navigate("/");
+            navigate("/consumer");
           }}
           className="group flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-500 py-4 font-bold shadow-lg shadow-emerald-900/50 transition hover:bg-emerald-400"
         >

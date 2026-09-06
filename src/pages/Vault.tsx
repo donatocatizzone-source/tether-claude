@@ -11,7 +11,7 @@ export default function Vault() {
       <div className="relative flex h-full flex-col p-6 pt-12">
         <div className="sticky top-0 z-10 mb-8 flex items-center gap-3 bg-slate-900 py-2">
           <button
-            onClick={() => navigate("/")}
+            onClick={() => navigate("/consumer")}
             className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-800 shadow-sm transition hover:bg-slate-700"
           >
             <ArrowLeft className="h-5 w-5 text-white" />

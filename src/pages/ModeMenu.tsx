@@ -23,7 +23,7 @@ export default function ModeMenu() {
     <div className="min-h-screen bg-background p-6 pt-12 text-foreground">
       <div className="sticky top-0 z-10 mb-8 flex items-center gap-3 bg-background py-2">
         <button
-          onClick={() => navigate("/")}
+          onClick={() => navigate("/consumer")}
           className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card shadow-sm transition active:scale-95"
         >
           <ArrowLeft className="h-5 w-5 text-foreground" />

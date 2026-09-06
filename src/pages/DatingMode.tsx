@@ -23,7 +23,7 @@ export default function DatingMode() {
   return (
     <div className="relative min-h-screen bg-slate-900 p-6 text-white">
       <div className="absolute left-6 right-6 top-0 z-20 mt-8 flex items-center gap-3">
-        <button onClick={() => navigate("/")} className="rounded-full bg-slate-800 p-2 transition hover:bg-slate-700">
+        <button onClick={() => navigate("/consumer")} className="rounded-full bg-slate-800 p-2 transition hover:bg-slate-700">
           <ArrowLeft className="h-5 w-5" />
         </button>
         <div>

@@ -26,7 +26,7 @@ export default function Guardian() {
           </p>
         </div>
         <button
-          onClick={() => navigate("/")}
+          onClick={() => navigate("/consumer")}
           className="rounded-full bg-white/10 p-2 backdrop-blur transition hover:bg-white/20"
         >
           <X className="h-5 w-5" />
