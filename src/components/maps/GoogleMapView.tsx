@@ -25,10 +25,24 @@ export interface LatLng {
   lng: number;
 }
 
+export type MarkerColor = "red" | "amber" | "green" | "blue";
+
+// Same colored-dot marker icons OLD's GoogleMapEmbed used — kept as plain
+// URLs (no @react-google-maps/api dependency needed for this) so Overwatch/
+// Pro Guard's red/amber/green/blue status markers match exactly.
+const MARKER_COLOR_ICONS: Record<MarkerColor, string> = {
+  red: "https://maps.google.com/mapfiles/ms/icons/red-dot.png",
+  amber: "https://maps.google.com/mapfiles/ms/icons/yellow-dot.png",
+  green: "https://maps.google.com/mapfiles/ms/icons/green-dot.png",
+  blue: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png",
+};
+
 export interface MapMarker {
   position: LatLng;
   /** Short marker label, e.g. a contact's initial. */
   label?: string;
+  /** Status color, e.g. red = distress, amber = expiring, green = active. */
+  color?: MarkerColor;
 }
 
 interface GoogleMapViewProps {
@@ -115,6 +129,7 @@ export function GoogleMapView({
           key={i}
           position={m.position}
           label={m.label ? { text: m.label, color: "#fff", fontWeight: "bold" } : undefined}
+          icon={m.color ? MARKER_COLOR_ICONS[m.color] : undefined}
         />
       ))}
     </GoogleMap>
