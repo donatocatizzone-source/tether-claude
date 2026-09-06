@@ -20,17 +20,24 @@ export default function Home() {
     <div className="min-h-screen bg-background text-foreground">
       <header className="sticky top-0 z-20 border-b border-border bg-card">
         <PageContainer wide className="flex items-center justify-between py-4">
+          {/* Mobile only. On md:+ the AppShell nav rail is on screen, so the
+              drawer would be a second copy of navigation the user can already
+              see — and it covers the page to show it. */}
           <button
             onClick={openMenu}
-            className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted transition hover:brightness-95"
+            aria-label="Open menu"
+            className="flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground md:hidden"
           >
-            <Menu className="h-5 w-5 text-foreground" />
+            <Menu className="h-5 w-5" />
           </button>
-          <div>
-            <h2 className="text-right text-lg font-bold leading-tight">Hello, Gabe</h2>
-            <div className="mt-0.5 flex items-center justify-end gap-2">
+          {/* Right-aligned on mobile, where it sits between the hamburger and
+              the avatar; left-aligned on desktop, where the hamburger is gone
+              and it becomes the page heading. */}
+          <div className="flex-1 md:order-first">
+            <h2 className="text-right text-lg font-semibold leading-tight md:text-left">Hello, Gabe</h2>
+            <div className="mt-0.5 flex items-center justify-end gap-2 md:justify-start">
               <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground" />
-              <p className="text-xs font-medium text-muted-foreground">Protection inactive</p>
+              <p className="text-xs text-muted-foreground">Protection inactive</p>
             </div>
           </div>
           <div className="relative">
