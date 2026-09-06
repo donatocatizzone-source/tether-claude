@@ -19,13 +19,13 @@ export function ThemeToggle({ fullWidth = false }: { fullWidth?: boolean }) {
   if (!mounted) return null;
 
   return (
-    <div className={cn("inline-flex items-center rounded-full bg-slate-800 p-1", fullWidth && "flex w-full")}>
+    <div className={cn("inline-flex items-center rounded-md border border-border bg-muted p-0.5", fullWidth && "flex w-full")}>
       <button
         onClick={() => setTheme("light")}
         className={cn(
-          "flex items-center justify-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition",
+          "flex items-center justify-center gap-1.5 rounded-sm px-2.5 py-1 text-xs font-medium transition-colors",
           fullWidth && "flex-1",
-          theme === "light" ? "bg-slate-700 text-white shadow" : "text-slate-400 hover:text-white",
+          theme === "light" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
         )}
       >
         <Sun className="h-3.5 w-3.5" /> Light
@@ -33,9 +33,9 @@ export function ThemeToggle({ fullWidth = false }: { fullWidth?: boolean }) {
       <button
         onClick={() => setTheme("dark")}
         className={cn(
-          "flex items-center justify-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition",
+          "flex items-center justify-center gap-1.5 rounded-sm px-2.5 py-1 text-xs font-medium transition-colors",
           fullWidth && "flex-1",
-          theme === "dark" ? "bg-slate-700 text-white shadow" : "text-slate-400 hover:text-white",
+          theme === "dark" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
         )}
       >
         <Moon className="h-3.5 w-3.5" /> Dark

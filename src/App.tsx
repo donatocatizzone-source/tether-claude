@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "sonner";
+import { useTheme } from "next-themes";
 
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
@@ -52,9 +53,10 @@ function AuthRoute({ children }: { children: ReactNode }) {
  * /business/admin got the whole console rendering empty — confusing, and more
  * so now that managers can mint public seller links from it.
  *
- * The fallback is deliberately tiered rather than always sending people to
- * /business/member: a user with no organization has no more business on the
- * field view than on the console, so they go to /consumer.
+ * The fallback is tiered rather than a single destination: someone with no
+ * organization is sent to /business/new, which is the thing that would fix
+ * their problem, while someone who has an org but not the role goes to the
+ * field view they can actually use.
  */
 function RequireWorkspace({ need, children }: { need: "member" | "admin"; children: ReactNode }) {
   const { hasOrganization, isManager, loading } = useProfile();
@@ -93,10 +95,16 @@ function WorkspaceGate({ children }: { children: ReactNode }) {
   );
 }
 
+/** Toasts followed the theme nowhere — they were pinned dark on a light app. */
+function AppToaster() {
+  const { resolvedTheme } = useTheme();
+  return <Toaster theme={resolvedTheme === "light" ? "light" : "dark"} position="top-center" richColors />;
+}
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Toaster theme="dark" position="top-center" richColors />
+      <AppToaster />
       <BrowserRouter basename={import.meta.env.BASE_URL}>
         <AuthProvider>
           <WorkspaceGate>

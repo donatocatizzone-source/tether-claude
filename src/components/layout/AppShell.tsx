@@ -45,7 +45,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <MenuDrawer />
 
         {/* Mobile bottom tab bar */}
-        <nav className="fixed inset-x-0 bottom-0 z-40 mx-auto flex h-24 max-w-md items-start justify-around rounded-t-[40px] border-t border-slate-100 bg-white px-2 pt-4 md:hidden">
+        <nav className="fixed inset-x-0 bottom-0 z-40 mx-auto flex h-20 max-w-md items-start justify-around border-t border-border bg-card px-2 pt-3 md:hidden">
           <NavItem {...NAV_ITEMS[0]} />
           <NavItem {...NAV_ITEMS[1]} />
           <div className="w-16" /> {/* spacer for the floating button */}
@@ -54,9 +54,9 @@ export function AppShell({ children }: { children: ReactNode }) {
 
           <button
             onClick={() => navigate("/consumer/active-timer")}
-            className="absolute -top-8 left-1/2 flex h-16 w-16 -translate-x-1/2 transform items-center justify-center rounded-full border-4 border-slate-50 bg-slate-900 shadow-lg transition hover:scale-110 active:scale-95"
+            className="absolute -top-6 left-1/2 flex h-12 w-12 -translate-x-1/2 transform items-center justify-center rounded-full border-4 border-background bg-primary text-primary-foreground shadow-md transition active:scale-95"
           >
-            <Shield className="h-7 w-7 text-white" />
+            <Shield className="h-5 w-5" />
           </button>
         </nav>
       </div>
@@ -71,12 +71,12 @@ function NavItem({ to, label, icon: Icon }: (typeof NAV_ITEMS)[number]) {
       end={to === "/consumer"}
       className={({ isActive }) =>
         cn(
-          "flex w-16 flex-col items-center rounded-lg p-2 text-[10px] font-medium transition hover:bg-slate-50",
-          isActive ? "text-[#4292c6]" : "text-slate-400 hover:text-slate-600",
+          "flex w-16 flex-col items-center rounded-md p-2 text-[10px] font-medium transition hover:bg-accent",
+          isActive ? "text-primary" : "text-muted-foreground hover:text-foreground",
         )
       }
     >
-      <Icon className="mb-1 h-6 w-6" />
+      <Icon className="mb-1 h-5 w-5" />
       {label}
     </NavLink>
   );

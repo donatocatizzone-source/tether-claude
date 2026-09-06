@@ -48,8 +48,8 @@ export default function Home() {
         <div className="lg:grid lg:grid-cols-[1.1fr_1fr] lg:items-start lg:gap-6">
           <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
             <div className="mb-2 flex items-center gap-2">
-              <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
-              <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600">System Online</span>
+              <span className="h-1.5 w-1.5 rounded-full bg-mode-safe" />
+              <span className="text-[10px] font-medium uppercase tracking-wider text-mode-safe">System Online</span>
             </div>
             <h3 className="mb-6 text-2xl font-bold tracking-tight">You are Safe</h3>
 
@@ -69,7 +69,7 @@ export default function Home() {
               >
                 <div className="mb-1 text-[10px] font-bold uppercase text-muted-foreground">Vouch Score</div>
                 <div className="flex items-center gap-1 text-sm font-bold">
-                  <Star className="h-3 w-3 fill-current text-yellow-400" /> 98/100
+                  <Star className="h-3 w-3 fill-current text-mode-active" /> 98/100
                 </div>
               </button>
             </div>
@@ -87,28 +87,28 @@ export default function Home() {
             <ModeCard
               onClick={() => navigate("/consumer/mode/dating")}
               icon={Heart}
-              iconClass="bg-pink-50 text-pink-500 group-hover:bg-pink-100"
+              iconClass="bg-mode-dating/10 text-mode-dating"
               title="Dating"
               subtitle="Meetings & Dates"
             />
             <ModeCard
               onClick={() => navigate("/consumer/mode/ride")}
               icon={Car}
-              iconClass="bg-indigo-50 text-indigo-500 group-hover:bg-indigo-100"
+              iconClass="bg-mode-ride/10 text-mode-ride"
               title="Ride"
               subtitle="Solo Travel"
             />
             <ModeCard
               onClick={() => navigate("/consumer/mode/market")}
               icon={ShoppingBag}
-              iconClass="bg-sky-50 text-sky-500 group-hover:bg-sky-100"
+              iconClass="bg-mode-active/10 text-mode-active"
               title="Marketplace"
               subtitle="Buying & Selling"
             />
             <ModeCard
               onClick={() => navigate("/consumer/mode/student")}
               icon={GraduationCap}
-              iconClass="bg-emerald-50 text-emerald-500 group-hover:bg-emerald-100"
+              iconClass="bg-mode-safe/10 text-mode-safe"
               title="Student"
               subtitle="Campus Safety"
             />
