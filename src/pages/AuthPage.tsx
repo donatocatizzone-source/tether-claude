@@ -26,24 +26,25 @@ export default function AuthPage() {
   const { signIn, signUp, resendConfirmation } = useAuth();
   const navigate = useNavigate();
 
-  // If an invite token is present, look it up to pre-fill the email.
+  // Shows which brokerage the invite is for.
+  //
+  // Now a security-definer RPC rather than two direct table reads. Those
+  // relied on org_invitations' blanket `using (true)` policy (dropped in
+  // 0004, it let anon enumerate every invite), and the organizations lookup
+  // never worked anyway — signed out, get_user_org_id(auth.uid()) is NULL, so
+  // that RLS policy matched nothing and the banner always degraded to
+  // "your team".
+  //
+  // The email is masked, so it can't be used to pre-fill the field; the user
+  // types the address the invite was sent to, which accept_org_invitation()
+  // then verifies server-side.
   useEffect(() => {
     if (!inviteToken) return;
     (async () => {
-      const { data } = await supabase
-        .from("org_invitations")
-        .select("email, organization_id")
-        .eq("token", inviteToken)
-        .eq("status", "pending")
-        .single();
-      if (data) {
-        setEmail(data.email);
-        const { data: org } = await supabase
-          .from("organizations")
-          .select("name")
-          .eq("id", data.organization_id)
-          .single();
-        setInviteInfo({ email: data.email, orgName: org?.name || "your team" });
+      const { data } = await supabase.rpc("get_invitation_preview", { _token: inviteToken });
+      const preview = data as unknown as { organization_name: string | null; email_masked: string } | null;
+      if (preview) {
+        setInviteInfo({ email: preview.email_masked, orgName: preview.organization_name || "your team" });
       }
     })();
   }, [inviteToken]);
