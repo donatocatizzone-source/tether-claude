@@ -2,89 +2,287 @@
 
 Tether is a personal safety app: a "Dead Man's Switch" / universal safety layer
 for high-risk real-world meetup moments — dating, rideshares, online
-marketplace meetups, and student commutes. The problem it solves is the
-**Safety Gap**: the vulnerable window between a digital connection (a match,
-a booked ride, a buyer's message) and the real-world interaction that follows.
+marketplace meetups, and student commutes — plus a full B2B side for
+companies that send field employees (realtors, etc.) into similar risk.
 
-This repo is a fresh rebuild of a prototype originally built in **Lovable**
-(React + Tailwind + shadcn/ui + Supabase + Google Maps), migrated here for
-continued development in Claude Code.
+**This brief was substantially rewritten** after discovering that the rebuild
+had been targeting an early, much simpler prototype as its only reference.
+There is a second, far more advanced prior build that changes both the
+architecture and the feature scope. Read the next section carefully before
+touching code.
 
-## Ground truth: `reference/tether-app-demo.html`
+## Ground truth: two references, not one
 
-**This file is the pixel-accurate source of truth.** It's the original
-Gemini/Lovable single-file HTML/Tailwind/vanilla-JS prototype, with one fix
-applied: the original export had a duplicate/mis-nested copy of 12 screens
-(a missing `</div>` after `#screen-ride` caused everything after it to nest
-inside it instead of sitting as a sibling). That's been corrected — the file
-now has exactly one copy of each of the 18 screens, is fully balanced, and
-opens correctly in a browser as-is (open it directly to click through the
-whole prototype).
+### `OLD/` — the real source of truth (architecture + almost all features)
 
-Whenever this brief describes a screen only at a high level, **read the
-actual markup at the line number given below** rather than guessing —
-exact copy, spacing, icon choices, and color are all in there.
+At `C:\Users\donat\OneDrive\Documents\Tether Rebuild\Claude Code\OLD` is a
+**complete, working Lovable build** of Tether — real Supabase Auth, a
+16-table schema, ~10,350 lines of custom app code across pages and
+components, and an entire already-built B2B manager console. This is the
+most-advanced version of Tether that has ever existed and **supersedes
+`reference/tether-app-demo.html` for architecture and for every feature it
+covers.** It was not known to exist when this rebuild started; CLAUDE.md's
+original "pixel-accurate source of truth" framing referred only to the demo
+file below, which turned out to be an early prototype stage, not the actual
+most-recent build.
 
-## Screen inventory
+When building anything, check `OLD/` first:
+- `OLD/src/pages/*.tsx` — one file per route (see Architecture below)
+- `OLD/src/components/tether/*.tsx` — consumer-side feature components
+- `OLD/src/components/tether/overwatch/*.tsx` — manager console (Overwatch)
+- `OLD/src/components/tether/pro/*.tsx` — B2B field-employee flow (Pro Guard)
+- `OLD/src/contexts/*.tsx` — Auth, Workspace, SafetyTimer
+- `OLD/src/hooks/*.ts` — useGeoTracking, useNearbyPlaces, useIncidentNotifications, useTheme
+- `OLD/supabase/migrations/*.sql` — the real schema history (now consolidated
+  into `supabase/schema.sql` in this repo, see below)
 
-Original screen id -> route in this app -> what it is -> build status.
+`OLD` is a separate, standalone project directory (its own `package.json`,
+its own git-less working copy) — copy logic/markup out of it, don't try to
+run it as part of this repo.
 
-| Screen id | Route | What it is | Status |
-|---|---|---|---|
-| `screen-home` | `/` | Light-theme dashboard: greeting, "You are Safe" card with Safety Circle/Vouch shortcuts, "Arm Safety Tether" CTA, 2x2 Quick Modes grid | Built (`src/pages/Home.tsx`) |
-| `screen-mode-menu` | `/mode/:mode` | Shared, data-driven screen populated per mode (dating/ride/market/student) -- connected-app icons + a feature list | Built (`src/pages/ModeMenu.tsx`, config in `src/lib/modeMenus.ts`) |
-| `screen-active-timer` | `/active-timer` | Dark full-screen countdown ring (30 min), "I'M SAFE" / "TRIGGER SOS" buttons | Built (`src/pages/ActiveTimer.tsx`) |
-| `screen-dating` | `/dating` | Fake-call escape: "PROTECTION ACTIVE" card, "Get Out" button (3s delay), full-screen incoming-call overlay ("Landlord") | Built (`src/pages/DatingMode.tsx`) |
-| `screen-ride` | `/ride` | Map + trip card (Uber/Lyft sync chip), Simulate Safe / Simulate Deviate, red bottom-sheet deviation alert | Partially built -- real Google Maps (`GoogleMapView`) used intentionally instead of the demo's fake SVG map. The rideshare-sync UI chrome + deviation alert sheet from `#screen-ride` (~line 1267) not yet ported. |
-| `screen-market` | `/market` | Camera-viewfinder evidence capture, "Evidence Secured" success overlay | Built (`src/pages/MarketplaceMode.tsx`) |
-| `screen-vault` | `/vault` | Grid of encrypted evidence thumbnails (photos + text logs) | Stub -- spec at `#screen-vault` (~line 881) |
-| `screen-student-bus` | `/student/bus` | Bus-route map, bus icon animates along path, Simulate Route / Simulate Deviation | Stub -- spec at `#screen-student-bus` (~line 661), JS at `runBusSim`/`runBusDeviation`/`resetBusSim` (~line 1712) |
-| `screen-student-walk` | `/student/walk` | Shrinking countdown ring + progress bar for walk-home distance | Stub -- spec at `#screen-student-walk` (~line 697), JS at `startWalkSim`/`runWalkDeviation` (~line 1777) |
-| `screen-student-hangout` | `/student/hangout` | Pick friends (toggle grid) + location pin + Guardian-notification preview | Stub -- spec at `#screen-student-hangout` (~line 736), JS at `toggleFriend` (~line 1829) |
-| `screen-circle` | `/circle` | Map with member pins + trusted-contact list ("Ping" button) + activity feed | Stub -- spec at `#screen-circle` (~line 795) |
-| `screen-vouch` | `/vouch` | Circular 98/100 trust-score ring + recent-badges list | Stub -- spec at `#screen-vouch` (~line 596) |
-| `screen-settings` | `/settings` | Grouped settings list (Account / Safety / Support) + Log Out | Stub -- spec at `#screen-settings` (~line 920) |
-| `screen-premium` | `/premium/:key` | Shared, data-driven detail screen for a premium feature (dispatch/guardian/badge) | Built (`src/pages/Premium.tsx`, config in `src/lib/modeMenus.ts`) |
-| `screen-guardian` | `/guardian` | Parent/guardian live-view: map pin with battery %, bottom sheet with ETA/speed/emergency-audio row | Stub -- spec at `#screen-guardian` (~line 1061) |
-| `screen-b2b-home` | `/b2b` | Realtor/agent dashboard: showing-timer CTA, Open House / Verify Client / Team Status tool grid | Stub -- spec at `#screen-b2b-home` (~line 410) |
-| `screen-b2b-team` | `/b2b/team` | Agent roster with live status + message shortcut | Stub -- spec at `#screen-b2b-team` (~line 472) |
-| `screen-b2b-openhouse` | `/b2b/openhouse` | Radar-ping geofence monitor, auto-check-in toggle, silent-alarm button | Stub -- spec at `#screen-b2b-openhouse` (~line 545) |
+### `reference/tether-app-demo.html` — early visual mockup (partially superseded)
 
-Plus **app chrome** (not routed -- lives in the shell):
-- **Toast system** (`showToast()`, ~line 1367) -> use `sonner`'s `toast()` (already wired as `<Toaster>` in `App.tsx`, used in `DatingMode`/`MarketplaceMode`/`ActiveTimer`/`ModeMenu`)
-- **Hamburger menu drawer** (`#menu-drawer`, ~line 204) -> not yet ported; contains the "Switch to Professional" link into the B2B side, plus links to Premium features and Billing
-- **Payment sheet** (`#pay-sheet`, ~line 146) -> not yet ported; Apple-Pay-style plan picker (Monthly $9.99 / Single Mission $0.99), `selectPlan()`/`processPayment()` (~line 1410)
-- **Bottom nav + floating shield button** (`#bottom-nav`, ~line 279) -> ported (`src/components/layout/AppShell.tsx`)
-- **Status bar / notch / phone-frame chrome** -> deliberately **not** ported. The original was a phone-simulator wrapper for a demo; this rebuild is a real responsive web app, so the phone frame goes away and screens fill the viewport. (Per the earlier brainstorm: "single responsive web app... no separate mobile/desktop builds.")
+The original Gemini/Lovable single-file HTML/Tailwind/vanilla-JS prototype.
+Still useful for: the base visual/design-token language (dark slate-900,
+brand gradient, mode accent colors — see Design System below) and for the
+handful of simple screens that don't have a richer `OLD` equivalent (Vouch
+score display, Settings list). **Do not use it as the architecture
+reference** — its single-route-per-screen, no-auth model is the earlier
+prototype's simplification, not the real design.
 
-## Navigation model
+Historical note on this file: the original export had a duplicate/mis-nested
+copy of 12 screens (a missing `</div>` after `#screen-ride`), which was
+fixed before this rebuild started — the file has exactly one copy of each of
+its 18 screens and opens correctly in a browser as-is.
 
-The original is a single-page app with one router function:
+## What actually exists in this repo right now
 
-```js
-function switchScreen(screenId, toastMsg = null) { ... }
+Everything built so far in this rebuild was built against the demo file
+only, before `OLD` was discovered. Concretely, that means:
+
+- **Real Supabase Auth does not exist yet** — no `/auth` route, no
+  `AuthContext`, no `ProtectedRoute`. Everything is reachable with no login.
+- **The route structure is flat** (`/`, `/mode/:mode`, `/circle`, `/vouch`,
+  `/settings`, `/premium/:key`, `/ride`, `/b2b`, `/b2b/team`,
+  `/b2b/openhouse`, the student trio, etc. — see `src/App.tsx`), not
+  `OLD`'s `/consumer/*`, `/business/member`, `/business/admin` split.
+- **`WorkspaceContext` here has two modes** (`consumer`/`professional`,
+  see `src/components/layout/WorkspaceContext.tsx`), not `OLD`'s three
+  (`consumer`/`member`/`admin`, gated by `hasOrganization`/`isManager`).
+- The 18 demo screens (Home, ModeMenu, ActiveTimer, DatingMode,
+  MarketplaceMode, RideMode, Vault, the Student trio, Circle, Vouch,
+  Settings, Premium, Guardian, the B2B trio) are built and are reasonable
+  **visual/conceptual starting points** for their `OLD` equivalents, but
+  none of them are wired to real data, real sessions, or real auth — treat
+  them as skeletons to rebuild against `OLD`, not finished work to extend
+  as-is. Two known fidelity bugs from that phase, not yet fixed: `Home.tsx`
+  uses the wrong badge icon and is missing a decorative watermark; `Premium.tsx`
+  is missing its back-button chrome, background glow, and feature checklist.
+- `supabase/schema.sql` **has just been rewritten** to match `OLD`'s real
+  16-table schema (see below) — it no longer matches what any currently-built
+  screen actually queries, since none of them talk to Supabase yet.
+
+## Architecture (per `OLD` — build toward this)
+
+**Auth-gated, three-workspace SPA**, not a flat single-workspace one:
+
+```
+/auth                    — sign up / sign in (AuthRoute: redirects away if already logged in)
+/                         — redirects to /consumer
+/consumer/*               — ProtectedRoute; consumer dashboard + all consumer safety modes
+/business/member          — ProtectedRoute; Pro Guard (field-employee view)
+/business/admin           — ProtectedRoute; Overwatch (manager console)
+/walk/share/:token         — public, no auth — live Walk Home share link
+/invite/:token             — public, no auth — org-invite accept page
+*                          — NotFound
 ```
 
-It hides all `.screen` elements and shows `#screen-${screenId}`, updates which
-bottom-nav icon is highlighted, flips the status-bar text color for dark
-screens, and resets a few bits of per-screen state (closes the fake-call
-overlay, hides the marketplace success overlay, resets the bus-sim position).
+Three nested providers wrap the router: `AuthProvider` (session/user via
+`supabase.auth`), `WorkspaceProvider` (which of the three workspaces is
+active, persisted to `localStorage`, gated by whether the user belongs to an
+org / holds a manager-or-admin role), `SafetyTimerProvider` (one global
+countdown-timer service — start/pause/resume/stop — that any active safety
+mode can drive, instead of each screen owning its own `setInterval`).
 
-This rebuild replaces that with React Router (`src/App.tsx`) -- one route per
-screen id, `useNavigate()` instead of `switchScreen()`. Two screens are
-**data-driven** in the original (`openModeMenu(mode)` and `openPremium(key)`
-inject content into a single shared screen rather than having one screen per
-variant) -- those are ported the same way here as `/mode/:mode` and
-`/premium/:key`, reading from `src/lib/modeMenus.ts`.
+`ConsumerPage` itself has its own nested `<Routes>` (`walk`, `circle`,
+`vouch-score`, `safe-spaces`, and a catch-all that switches on a local
+`activeTab` state for `home`/`circle`/`activity`/`profile` — see
+`OLD/src/pages/ConsumerPage.tsx`). Business pages are single components
+(`MemberPage` → `TeamMemberView`, `AdminPage` → `OverwatchDashboard`).
+
+## Feature inventory (source: `OLD`, cross-referenced against the write-up)
+
+Status is honest, not aspirational: **"not started" is the default** for
+everything below unless stated otherwise, since none of this was built
+against `OLD` yet.
+
+### Consumer — Dating Mode / Date Guard (`OLD`'s most fleshed-out mode)
+- Full-screen stepper setup (`DatingSetupStepper.tsx`, `DatingSetupModal.tsx`) — who you're meeting, location, check-in interval
+- Active Date Guard screen (`DateGuardView.tsx`) — live session timer, check-in prompts, safety event log, live GPS map (`GoogleMapEmbed.tsx`/`MapView.tsx`), coordinates upserted every 30s (see `useGeoTracking`)
+- Post-date "Getting Home" 30-min countdown, confirm-safe or contacts alerted on expiry
+- Date History (`DateHistory.tsx`) — expandable cards, timeline of safety events, static map — backed by `date_sessions`
+- **Status here:** `src/pages/DatingMode.tsx` only covers the old demo's fake-call screen (see Fake Call below) — the stepper, active-guard session, GPS map, and history are all not started.
+
+### Fake Call System (`FakeCallSetup.tsx`, `FakeCallScreen.tsx`)
+- Setup dialog: caller name (Mom/Boss/Uber Driver/custom) + delay (Now/15s/30s/1m)
+- Incoming call screen, active call screen (timer, mute, speaker, end), 4 ringtones with preview, vibration toggle with a real ring-pause-ring pattern + haptics
+- Reachable from Quick Actions and from "Bad Date Exit" inside Date Guard
+- **Status here:** `src/pages/DatingMode.tsx` has a single hardcoded "Landlord" fake call with no setup dialog, no ringtone/vibration options, no timer/mute/speaker on the active call. Significantly simpler than `OLD`.
+
+### Marketplace Mode (rebuilt in `OLD` — no premium lock)
+- Overview hub with Facebook Marketplace link (`MarketplaceSetupStepper.tsx`)
+- **MarketGuard** path (`MarketplaceGuardView.tsx`) — sale details → safety settings → review → live GPS map + timer + fake call + SOS
+- **Hire a Proxy** path — UberEats-style flow to hire a verified proxy (details → instructions → review, $15 fee estimate)
+- Marketplace History (`MarketplaceHistory.tsx`) — backed by `marketplace_sessions`
+- **Status here:** `src/pages/MarketplaceMode.tsx` only covers the old demo's evidence-capture camera screen. MarketGuard, Hire-a-Proxy, and history are not started.
+
+### Dashboard (`Dashboard.tsx`, `HoldPanicButton.tsx`)
+- Clean profile card (avatar initial, name, email, 3 stat tiles) — no heartbeat animation, no slide-to-distress slider
+- Hold-to-activate panic button — 3s hold with filling progress bar, prevents accidental triggers
+- Stat tiles, all clickable: **Quick Call/SOS** (bottom sheet of trusted contacts, tap to dial), **Vouch Score** (own page, circular gauge, history), **Active** (reserved for active sessions)
+- **Status here:** `src/pages/Home.tsx` is the old demo's static dashboard (hardcoded "Gabe", no real profile data, no hold-to-activate button, stat tiles navigate but aren't wired to real contact/session data).
+
+### Safety Circle (`CirclePage.tsx`, `CircleScreen.tsx`)
+- Google Map + member list; **invite-link system** (generate shareable link → recipient signs up → auto-accept via `accept_circle_invite()`, mutual `circle_members` row both directions)
+- Live location sharing — circle members appear as real pins (via the `user_locations` RLS policy that lets circle members read each other's location)
+- Backed by real `trusted_contacts` (not dummy data) — first contact added is auto-primary, contacts feed the SOS Quick Call sheet
+- **Status here:** `src/pages/SafetyCircle.tsx` has a real `GoogleMapView` but hardcoded demo members (Mom/Sister), no invite system, no live sharing, no `trusted_contacts` wiring.
+
+### Safe Spaces (`SafeSpacesPage.tsx`, `useNearbyPlaces.ts`, `SuggestSafeSpaceModal.tsx`)
+- Map + searchable/filterable list backed by real Google Places API results (police/fire/library/hospital/post office/bank within 5km of real GPS) plus the seeded `safe_spaces` rows
+- "You are here" blue-star marker, map centers on real location
+- "Suggest a Space" form → saved unverified for review; schema has business-advertising fields ready (`is_business`/`business_name`/`business_phone`/`business_website`)
+- **Status here:** not started — no route, no page, no hook exists in this rebuild.
+
+### Student Mode
+- `OLD`'s `BusMode.tsx`/`StudentMode.tsx`/`HangoutMode.tsx`/`WalkHome.tsx`(+`WalkSharePage.tsx` for the public share link) roughly line up with this rebuild's already-built `student/Bus.tsx`/`Hangout.tsx`/`Walk.tsx` conceptually, but `OLD`'s Walk Home has a real shareable `/walk/share/:token` link backed by `walk_sessions` — this rebuild's Walk timer is purely local component state.
+
+### B2B — Pro Guard (`components/tether/pro/*`, field employees, `/business/member`)
+- Timed appointment sessions (client name, address, notes, expected end time) with a countdown, backed by `professional_sessions`
+- **Silent alarm PIN pad** (`PinPadModal.tsx`) — entering a duress PIN quietly sets `status = 'duress_alert'` while the screen shows a normal "completed" state
+- **Geofencing** — session can set a geofence; `check_geofence_breach()` auto-creates a medium-severity incident if the user's `user_locations` leaves the radius
+- **Status here:** `src/pages/RideMode.tsx` is the closest analog conceptually (a session + map) but has none of this — no duress PIN, no geofence, no `professional_sessions` wiring. The old demo's B2B trio (`b2b/Home.tsx`/`Team.tsx`/`OpenHouse.tsx`) is a different, simpler concept (a realtor showing-timer dashboard) and doesn't map onto Pro Guard directly.
+
+### B2B — Overwatch manager console (`components/tether/overwatch/*`, `/business/admin`)
+- `OverwatchDashboard.tsx` (shell) + `AlertStream.tsx`/`IncidentFeed.tsx` (severity-leveled incident feed), `AlertsMap.tsx` (geographic view), `StatusBoard.tsx`/`TeamTable.tsx` (roster at a glance), `EmployeeDetailView.tsx` (drill-in), `ResolutionModal.tsx` (acknowledge/resolve workflow — outcome: false alarm / user safe / emergency services called / test), `AuditLog.tsx`, `InviteTeamModal.tsx`/`AddEmployeeModal.tsx`/`InvitationsView.tsx` (org invites), `OverwatchAnalytics.tsx`, `OverwatchSidebar.tsx`, `OverwatchLive.tsx`
+- Real-time: `useIncidentNotifications.ts` subscribes to `incidents` inserts + `professional_sessions` duress updates via Supabase Realtime, fires toasts + browser Notifications for high/critical severity
+- **Status here:** not started at all. `src/pages/b2b/Dashboard.tsx` is an orphaned, unrouted `ScreenStub` describing exactly this feature — it was planned (a plan was given and approved in principle) but never built. This is the single largest gap between this rebuild and `OLD`.
+
+### Org system (backbone for all of B2B)
+- `organizations` + `user_roles` (multi-role per user: `user`/`admin`/`security_guard`/`manager`, checked via the security-definer `has_role()` function, never trusted from client-supplied role claims)
+- `org_invitations` — invite by email + role, auto-assigned to org/role on that email's signup via `handle_invitation_on_signup()`
+- Multi-tenant RLS throughout: every org-scoped table's manager/admin policies join back through `profiles.organization_id = get_user_org_id(auth.uid())`
+- B2B is intentionally kept out of the consumer UI (separate workspace, not a menu item)
+
+## Database schema
+
+`supabase/schema.sql` was just rewritten to match `OLD`'s real 16-table
+schema (consolidated from its migration history, same table/column names,
+same RLS policy shapes — see the file for full detail and comments). Run it
+against a fresh Supabase project, then regenerate `src/types/database.ts`:
+
+```
+npx supabase gen types typescript --project-id <your-project-id> > src/types/database.ts
+```
+
+**`src/types/database.ts` has not been regenerated yet** — it still reflects
+the old 8-table schema and will not match `supabase/schema.sql` until this
+is run against a live project.
+
+| Table | Purpose |
+|---|---|
+| `profiles` | 1:1 with `auth.users`; safe word, duress PIN hash, org, job title/description/phone |
+| `organizations` | B2B tenant, subscription tier |
+| `user_roles` | Multi-role per user (`user`/`admin`/`security_guard`/`manager`); checked via `has_role()` |
+| `trusted_contacts` | SOS quick-call contacts; first one added is auto-primary |
+| `check_ins` | Manual/automated safety pings |
+| `active_sessions` | Consumer mode sessions (dating/ride/marketplace/student) |
+| `professional_sessions` | Pro Guard sessions — client, address, expected end time, geofence, duress status |
+| `incidents` | Geofence breaches + duress alerts; new → acknowledged → resolved workflow with outcome |
+| `user_locations` | One row per user, upserted ~30s by `useGeoTracking`; also drives Circle live-sharing + geofence checks |
+| `org_invitations` | Invite-by-email-and-role, auto-accepted on matching signup |
+| `walk_sessions` | Walk Home sessions + public share token |
+| `date_sessions` | Date Guard history — meeting details, safety events, location |
+| `marketplace_sessions` | MarketGuard + Hire-a-Proxy sessions |
+| `safe_spaces` | Safe meetup locations — verified/business fields, seeded with 5 NYC rows |
+| `circle_invitations` | Shareable Circle invite tokens |
+| `circle_members` | Mutual Circle connections (both directions inserted together) |
+
+## What's already scaffolded here
+
+- Full Vite/TS/Tailwind/shadcn config, carried over from the Lovable export
+- `src/index.css` — design tokens (now theme-aware, light default / `.dark`
+  override — see Dark/Light Mode below), wired as Tailwind utilities
+- `src/lib/env.ts`, `src/lib/supabase.ts`, `src/types/database.ts` — typed
+  config + Supabase client (types are stale, see Database schema above)
+- `src/lib/modeMenus.ts` — ported `modeMenus`/`premiumFeatures` config
+  driving the demo's `/mode/:mode` and `/premium/:key` (these are old-demo
+  concepts; may not survive the move to `OLD`'s architecture as-is)
+- `src/components/maps/GoogleMapView.tsx` — shared Google Maps wrapper (dark
+  style, expected/actual polylines, single/multi marker, used in place of
+  every demo screen's original fake SVG map)
+- `src/components/layout/AppShell.tsx` — bottom nav + floating shield button
+- `src/components/layout/MenuDrawer.tsx` + `MenuDrawerContext.tsx` — hamburger
+  drawer (ported from the demo's `#menu-drawer`); links to the not-yet-built
+  payment sheet show a placeholder toast
+- `src/components/layout/WorkspaceContext.tsx` + `WorkspaceToggle.tsx` — the
+  **two-mode** consumer/professional toggle built against the old demo's
+  flat architecture; will need reconciling with `OLD`'s three-mode version
+  (consumer/member/admin, gated by org membership + role) once real auth
+  and roles exist
+- `src/components/layout/ThemeToggle.tsx` — dark/light toggle via
+  `next-themes`; `active-timer`/`dating`/`market`/`premium`/`vault`/`guardian`
+  and the B2B trio stay hardcoded dark regardless of the toggle (deliberate
+  safety-session / professional-workspace identity, not an oversight)
+- `src/components/layout/ScreenStub.tsx` — placeholder for not-yet-built
+  screens
+- **Old-demo screens built** (skeletons only — see "What actually exists"
+  above for what's missing relative to `OLD`): Home, ModeMenu, ActiveTimer,
+  DatingMode, MarketplaceMode, RideMode (partial), Premium, Vault,
+  SafetyCircle, Vouch, Settings, Guardian, the Student trio, the B2B trio
+- `supabase/schema.sql` — the real 16-table schema (just rewritten, not yet
+  applied to a live Supabase project)
+- `reference/tether-app-demo.html` — the early prototype (see Ground Truth)
+- `OLD/` (outside this repo) — the real prior build; see Ground Truth
+
+## Suggested build order
+
+Given the scope difference, auth and schema come first — almost everything
+else depends on them:
+
+1. Push `supabase/schema.sql` to a fresh Supabase project; regenerate
+   `src/types/database.ts`; add `.env.local` with the project URL/anon key.
+2. Build real Supabase Auth (`AuthContext`, `/auth` page, `ProtectedRoute`/
+   `AuthRoute`) — port from `OLD/src/contexts/AuthContext.tsx` and
+   `OLD/src/pages/AuthPage.tsx`.
+3. Restructure routing to the `/consumer/*` `/business/member`
+   `/business/admin` split; reconcile `WorkspaceContext` to `OLD`'s
+   three-mode, org/role-gated version; add `SafetyTimerContext`.
+4. Rebuild the consumer Dashboard against `OLD`'s `Dashboard.tsx` (hold-to-
+   activate panic button, real profile data, clickable stat tiles wired to
+   real `trusted_contacts`/Vouch/session data).
+5. Trusted Contacts + Safety Circle invite links + live location sharing
+   (`useGeoTracking`, `accept_circle_invite`).
+6. Dating Mode end-to-end (stepper → Date Guard → GPS map → post-date
+   countdown → history) plus the full Fake Call system — this is `OLD`'s
+   most fleshed-out mode and a good template for Ride/Marketplace/Student.
+7. Marketplace rebuild (MarketGuard + Hire-a-Proxy + history).
+8. Safe Spaces (Google Places integration via `useNearbyPlaces`).
+9. B2B: Pro Guard (duress PIN, geofencing) then Overwatch (the full manager
+   console — this supersedes the previously-planned, never-built
+   `b2b/Dashboard.tsx` admin panel; delete that stub once Overwatch lands).
+10. Org invitations end-to-end (`/invite/:token`), `/walk/share/:token`.
+11. Menu drawer's payment sheet + billing (still not started either build).
 
 ## Design system
 
-Carry these over exactly -- don't reinterpret them. Confirmed directly from
-`reference/tether-app-demo.html`'s inline `<style>` block and screen markup:
+Carry these over exactly — confirmed from `reference/tether-app-demo.html`'s
+inline `<style>` block and screen markup, and consistent with `OLD`'s use of
+the same shadcn/Tailwind token setup:
 
 | Token | Value | Use |
 |---|---|---|
-| Dark background | `#0f172a` (Slate 900) | Dark screens: active-timer, dating, market, premium, vault, guardian |
+| Dark background | `#0f172a` (Slate 900) | Dark screens: active-timer, dating, market, premium, vault, guardian, B2B |
 | Light background | `#f8fafc`-ish (Slate 50) | Light screens: home, circle, vouch, settings, mode-menu, ride |
 | Brand gradient | `linear-gradient(135deg, #4292c6, #2dd4bf)` | "Arm Safety Tether" CTA, hero moments |
 | Safe / Teal-green | emerald-500 `#10b981` | Status = safe, countdown ring fill, "I'm Safe" button |
@@ -96,99 +294,50 @@ Carry these over exactly -- don't reinterpret them. Confirmed directly from
 - **Typography**: Inter for UI text, JetBrains Mono for timers/coordinates/log
   readouts (`.font-mono-data` utility in `src/index.css`).
 - **Components**: glassmorphism overlays (`.glass-panel`), thumb-friendly
-  oversized touch targets -- this app gets used one-handed, often under stress.
-- **Layout**: single responsive web app, no phone-frame chrome (see above).
-
-These tokens are wired up in `src/index.css` and `tailwind.config.ts` as
-`bg-mode-safe`, `text-mode-dating`, `.bg-brand-gradient`, etc. Note some actual
-screens (home, circle, vouch, settings) use plain Tailwind slate/pink/indigo/
-emerald classes directly rather than the `mode-*` tokens, matching the
-reference file's own class names. Prefer matching the reference's literal
-classes when porting a specific screen; use the `mode-*` tokens for new UI
-that doesn't have a reference screen to copy from.
+  oversized touch targets — this app gets used one-handed, often under stress.
+- **Animation**: `OLD` uses `framer-motion` extensively for page-level
+  enter/exit transitions (`AnimatePresence` + `motion.div` with a simple
+  opacity fade, `duration: 0.2`) — this rebuild has the dependency but
+  doesn't use it yet.
+- **Layout**: single responsive web app, no phone-frame chrome — the
+  original demo's status-bar/notch/phone-simulator wrapper is deliberately
+  not ported; `OLD` also centers its content in a phone-shell (`PhoneShell.tsx`)
+  for its own demo purposes, which likewise shouldn't be ported literally.
 
 ## Tech stack
 
-- **Frontend**: Vite, React, TypeScript, Tailwind CSS, shadcn/ui (`components.json`
-  is already configured -- run `npx shadcn@latest add <component>` as needed)
+- **Frontend**: Vite, React, TypeScript, Tailwind CSS, shadcn/ui
+  (`components.json` already configured — `npx shadcn@latest add <component>`
+  as needed)
 - **Routing**: react-router-dom
-- **Backend/Auth**: Supabase (Postgres + RLS) -- see `supabase/schema.sql`
-- **Maps**: Google Maps (`@react-google-maps/api`) -- **reuses the same Google
-  Cloud API key from the original Lovable build.** Put it in `.env.local` as
-  `VITE_GOOGLE_MAPS_API_KEY`. See `src/lib/env.ts` for which Cloud APIs need to
-  be enabled (Maps JavaScript, Places, Geocoding, Directions). The original
-  demo's map screens (`ride`, `student-bus`, `circle`, `guardian`,
-  `b2b-openhouse`) all used a fake SVG grid + hardcoded pixel coordinates --
-  this rebuild intentionally upgrades those to real Google Maps via
-  `src/components/maps/GoogleMapView.tsx`.
-- **Icons**: lucide-react (the original used the separate `lucide` CDN
-  package with `data-lucide="..."` attributes + `lucide.createIcons()`; this
-  rebuild uses `lucide-react` components directly -- same icon names apply)
+- **Animation**: framer-motion (dependency present, not yet used — see
+  Design System above)
+- **Backend/Auth**: Supabase (Postgres + RLS + Auth) — see `supabase/schema.sql`.
+  Real auth does not exist in this rebuild yet (see Suggested build order).
+- **Maps**: Google Maps (`@react-google-maps/api`) via
+  `src/components/maps/GoogleMapView.tsx` — reuses the same Google Cloud API
+  key from the original Lovable build, in `.env.local` as
+  `VITE_GOOGLE_MAPS_API_KEY`. See `src/lib/env.ts` for which Cloud APIs need
+  enabling (Maps JavaScript, **Places** — required for Safe Spaces'
+  `useNearbyPlaces`, Geocoding, Directions).
+- **Icons**: lucide-react
 - **State/data fetching**: @tanstack/react-query
-- **Toasts**: sonner (replaces the original's hand-rolled `showToast()`)
+- **Toasts**: sonner
+- **Themes**: next-themes (wired up — see Dark/Light Mode section above)
 
-## Database schema
+## Known gaps / cleanup still needed (from the earlier fidelity audit)
 
-Implemented in `supabase/schema.sql` -- run it against a fresh Supabase
-project, then regenerate `src/types/database.ts` with:
-
-```
-npx supabase gen types typescript --project-id <your-project-id> > src/types/database.ts
-```
-
-| Table | Purpose |
-|---|---|
-| `profiles` | 1:1 with `auth.users`; safe word, duress PIN hash, role, org |
-| `trusted_contacts` | A user's Safety Circle (`screen-circle` member list) |
-| `check_ins` | Manual/automated "I'm safe" pings (`screen-active-timer`) |
-| `active_sessions` | Consumer mode sessions (dating/ride/marketplace/student) |
-| `professional_sessions` | B2B sessions (client, address, expected end time) -- `screen-b2b-home`'s "Next Showing" |
-| `organizations` | B2B tenant, subscription tier |
-| `user_locations` | One row per user, upserted ~every 30s -- powers `screen-circle`/`screen-guardian`/`screen-b2b-team` live pins |
-| `incidents` | SOS/duress events, severity, resolution workflow |
-
-## What's already scaffolded here
-
-- Full Vite/TS/Tailwind/shadcn config, carried over unchanged from the
-  Lovable export
-- `src/index.css` -- design tokens above, wired as Tailwind utilities
-- `src/lib/env.ts`, `src/lib/supabase.ts`, `src/types/database.ts` -- typed
-  config + Supabase client
-- `src/lib/modeMenus.ts` -- the ported `modeMenus`/`premiumFeatures` config
-  objects that drive `/mode/:mode` and `/premium/:key`
-- `src/components/maps/GoogleMapView.tsx` -- shared Google Maps wrapper (dark
-  style, expected/actual polylines, marker)
-- `src/components/layout/AppShell.tsx` -- bottom nav + floating shield button,
-  matching `#bottom-nav` exactly
-- `src/components/layout/ScreenStub.tsx` -- placeholder used by not-yet-built
-  screens, each annotated with its exact reference line number
-- **Built screens**: Home, ModeMenu, ActiveTimer, DatingMode, MarketplaceMode,
-  RideMode (partial), Premium
-- **Stub screens** (placeholder only, spec pointer in comments): Vault,
-  StudentBus, StudentWalk, StudentHangout, SafetyCircle, Vouch, Settings,
-  Guardian, B2BHome, B2BTeam, B2BOpenHouse
-- `supabase/schema.sql` -- full schema + starter RLS policies (not yet applied
-  to a live Supabase project)
-- `reference/tether-app-demo.html` -- the cleaned, de-duplicated original demo
-
-## Suggested build order
-
-Roughly in order of value/dependency:
-
-1. Google Maps key in `.env.local`; confirm Ride Mode's map renders.
-2. Push `supabase/schema.sql` to a Supabase project; wire `.env.local`; add
-   Supabase Auth (sign-up/sign-in) before building screens that assume a
-   logged-in user.
-3. `screen-circle` and `screen-vouch` (both light, both fairly self-contained,
-   both linked from Home's "You are Safe" card).
-4. `screen-settings` (simple grouped list, no special interaction).
-5. The three Student Mode screens (bus/walk/hangout) -- each has a real
-   animation/timer to port (see JS line refs in the table above).
-6. `screen-vault` and `screen-guardian` (both fairly visual, no complex logic).
-7. The B2B trio (`b2b-home`, `b2b-team`, `b2b-openhouse`) -- save for last,
-   it's the least connected to the consumer flows.
-8. Menu drawer + payment sheet app chrome, once enough screens exist to link
-   to from them.
-9. Wire everything to Supabase (replace hardcoded demo data with real
-   queries/subscriptions) and replace demo placeholder data (hardcoded "Gabe",
-   "98/100" score, etc.) with real user data.
+- `Home.tsx` — badge icon should be a checkmark, not a star; missing the
+  decorative watermark icon behind "You are Safe"
+- `Premium.tsx` — missing the circular back button + "PREMIUM" label, the
+  background glow, and the feature checklist
+- `RideMode.tsx` — missing the rideshare-sync chrome, Simulate Safe/Deviate
+  buttons + car animation, and the deviation-alert bottom sheet (all present
+  in the old demo's markup, never ported — separate from the much larger
+  gap vs. `OLD`'s actual Ride Mode concept)
+- Payment sheet (`#pay-sheet` in the old demo) never built; the menu
+  drawer's Billing/Upgrade buttons show a placeholder toast
+- `src/pages/StudentMode.tsx` — orphaned, unrouted duplicate stub, safe to
+  delete (superseded by the already-built `student/Bus.tsx`/`Walk.tsx`/`Hangout.tsx`)
+- `src/pages/b2b/Dashboard.tsx` — orphaned, unrouted `ScreenStub`; delete
+  once real Overwatch (item 9 in the build order) replaces it
